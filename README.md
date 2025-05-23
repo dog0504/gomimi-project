@@ -1,0 +1,1 @@
+# gomimi project start
