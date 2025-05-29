@@ -1,0 +1,4 @@
+# 使用するモデルやライブラリをここに記述
+fastapi
+uvicorn[standard]
+requests
