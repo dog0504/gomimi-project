@@ -33,45 +33,34 @@ services:
     networks:
       - app_network
 
-  # MongoDB データベースサービス
-  # db_service:
-  #   build: ./database # MongoDBのDockerfileがあるディレクトリ
-  #   container_name: db_service
-  #   hostname: db_service # コンテナ内でのホスト名
-  #   # restart: always # コンテナが停止した場合に自動再起動
-  #   ports:
-  #     - "27017:27017" # (開発時) ホストから直接MongoDBにアクセスする場合
-  #   volumes:
-  #     - ./database/db_data:/data/db # 名前付きボリュームでデータを永続化
-  #     - ./database/configdb:/data/configdb # MongoDBの設定データ用
-  #   networks:
-  #     - app_network
-
+  # MySQL データベースサービス
   db_service:
-    image: mongo:latest
+    image: mysql:8.4
     container_name: db_service
     hostname: db_service
-    # restart: always
+    command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     ports:
-      - "27017:27017"
-    volumes:
-      - ./database/db_data:/data/db
-      - ./database/configdb:/data/configdb
+      - "3306:3306"
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=root
-      - MONGO_INITDB_ROOT_PASSWORD=root
+      MYSQL_ROOT_PASSWORD: root # rootユーザーのパスワード
+      MYSQL_DATABASE: database # デフォルトのデータベース名
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    volumes:
+      - mysql-data:/var/lib/mysql # MySQLのデータ永続化
     networks:
       - app_network
 
-
-  mongo-express:
-    image: mongo-express
+  # MySQL 管理ツール (phpMyAdmin)
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin
     ports:
-      - 8081:8081
+      - "8080:80"
     environment:
-      ME_CONFIG_MONGODB_ADMINUSERNAME: root
-      ME_CONFIG_MONGODB_ADMINPASSWORD: root
-      ME_CONFIG_MONGODB_SERVER: db_service
+      PMA_HOST: db_service
+      PMA_USER: root
+      PMA_PASSWORD: root
     depends_on:
       - db_service
     networks:
@@ -79,9 +68,7 @@ services:
 
 # ボリュームの定義 (データの永続化)
 volumes:
-  db_data: # DBのデータ用
-    driver: local
-  configdb: # MongoDBの設定データ用
+  mysql-data:
     driver: local
 
 # ネットワークの定義 (サービス間の名前解決と通信を可能にする)
