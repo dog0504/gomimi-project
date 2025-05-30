@@ -54,9 +54,9 @@ services:
     # restart: always
     ports:
       - "27017:27017"
-    # volumes:
-    #   - ./database/db_data:/data/db
-    #   - ./database/configdb:/data/configdb
+    volumes:
+      - ./database/db_data:/data/db
+      - ./database/configdb:/data/configdb
     environment:
       - MONGO_INITDB_ROOT_USERNAME=root
       - MONGO_INITDB_ROOT_PASSWORD=root
@@ -78,11 +78,11 @@ services:
       - app_network
 
 # ボリュームの定義 (データの永続化)
-# volumes:
-#   db_data: # DBのデータ用
-#     driver: local
-#   configdb: # MongoDBの設定データ用
-#     driver: local
+volumes:
+  db_data: # DBのデータ用
+    driver: local
+  configdb: # MongoDBの設定データ用
+    driver: local
 
 # ネットワークの定義 (サービス間の名前解決と通信を可能にする)
 networks:
