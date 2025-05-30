@@ -52,10 +52,6 @@
 │   ├── README.md
 │   └── requirements.txt     #Pythonの外部ライブラリリスト
 ├── compose.yml              #全体のコンテナの設定ファイル
-├── database                 #DB用ディレクトリ
-│   ├── configdb
-│   ├── db_data              #データを永続保存ディレクトリ
-│   ├── Dockerfile
-│   └── setup.js
+├── mysql-data               #DB用ディレクトリ
 └── README.md
 ```
