@@ -21,9 +21,9 @@
   - port:5001
 * db_service
   - hostname:db_service
-  - port:27017
-* mongo-express mongoをWebUIで表示
-  * http://localhost:8081
+  - port:3306
+* phpmyadmin mysqlをWebUIで表示
+  * http://localhost:8080
 
 ### Pythonについて
 * AIとAPIのサーバーはビルドする際に`requirements.txt`に記述されている外部ライブラリをインストールするため、必要なライブラリは必ず`requirements.txt`に記述すること
@@ -34,8 +34,7 @@
   * `pip install "ライブラリ名"`          指定したライブラリをインストール
 
 ### DBについて
-* `compose.yml`の設定によりDBのデータは永続化させていない
-  * 永続にしたい場合`volumes`のコメントを外す
+* rootのパス:root
 
 ```
 # ツリー
