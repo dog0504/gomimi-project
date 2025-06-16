@@ -48,6 +48,7 @@ services:
       MYSQL_PASSWORD: password
     volumes:
       - mysql-data:/var/lib/mysql # MySQLのデータ永続化
+      - ./mysql/conf.d:/etc/mysql/conf.d #2025/06/13ホストのディレクトリをコンテナにマウント
     networks:
       - app_network
 

@@ -1,0 +1,18 @@
+# このファイルに、変更したい設定だけを記述します
+[mysqld]
+
+# 日本語環境とタイムゾーンの設定
+character-set-server = utf8mb4
+collation-server = utf8mb4_unicode_ci
+default-time-zone = 'Asia/Tokyo'
+
+# (例) パフォーマンス関連の設定
+max_connections = 200
+innodb_buffer_pool_size = 256M
+
+# (例) クエリログの有効化（開発時に便利）
+general_log = 1
+general_log_file = /var/lib/mysql/general.log
+slow_query_log = 1
+slow_query_log_file = /var/lib/mysql/slow_query.log
+long_query_time = 1
