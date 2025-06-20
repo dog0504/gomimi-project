@@ -1,2 +1,6 @@
 .env
 venv
+csv/garbage_list.csv
+csv/mysql_data.csv
+ai_service/__pycache__/app.cpython-313.pyc
+api_service/__pycache__/app.cpython-313.pyc

@@ -49,6 +49,7 @@ services:
     volumes:
       - mysql-data:/var/lib/mysql # MySQLのデータ永続化
       - ./mysql/conf.d:/etc/mysql/conf.d #2025/06/13ホストのディレクトリをコンテナにマウント
+      - ./csv:/mnt/csv # CSVファイルをコンテナ内の/csvにマウント
     networks:
       - app_network
 
@@ -56,6 +57,7 @@ services:
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
     container_name: phpmyadmin
+    # platform: linux/arm64
     ports:
       - "8080:80"
     environment:
