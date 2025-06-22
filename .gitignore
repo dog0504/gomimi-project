@@ -4,3 +4,7 @@ csv/garbage_list.csv
 csv/mysql_data.csv
 ai_service/__pycache__/app.cpython-313.pyc
 api_service/__pycache__/app.cpython-313.pyc
+node_modules/
+.DS_Store
+backend/csv/mysql_data.csv
+backend/csv/garbage_list.csv
