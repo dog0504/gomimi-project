@@ -1,0 +1,498 @@
+openapi: '3.0.3'
+info:
+  title: ゴミミのAPI
+  version: '1.0'
+servers:
+  - url: https://{APIのサーバーIP}/api
+
+tags:
+  - name: Auth
+    description: 認証操作
+  - name: Users
+    description: ユーザー関連の操作
+  - name: Garbage
+    description: ゴミの識別と検索
+  - name: BinDays
+    description: ゴミ収集日の取得
+  - name: Manuals
+    description: ゴミ分別マニュアル
+  - name: Histories
+    description: ユーザーの履歴
+  - name: Notifications
+    description: 通知設定
+
+paths:
+  /auth/register:
+    post:
+      tags:
+        - Auth
+      summary: 新しいユーザーを登録
+      description: 新しいユーザーを作成し、JWTトークンを返します。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "taro@example.com"
+                password:
+                  type: string
+                  format: password
+                  example: "password123"
+      responses:
+        '201':
+          description: User successfully registered.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Invalid input.
+        '409':
+          description: Already exists.
+
+  /auth/login:
+    post:
+      tags:
+        - Auth
+      summary: ユーザーログイン
+      description: ユーザーを認証し、JWTトークンを返します。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "taro@example.com"
+                password:
+                  type: string
+                  format: password
+                  example: "password123"
+      responses:
+        '200':
+          description: Successful login.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Unauthorized.
+
+  /users/me:
+    get:
+      tags:
+        - Users
+      summary: 現在のユーザーのプロフィールを取得
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized.
+    put:
+      tags:
+        - Users
+      summary: 現在のユーザーのプロフィールを更新
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "Taro Yamada"
+                address:
+                  $ref: '#/components/schemas/Address'
+      responses:
+        '200':
+          description: Profile updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized.
+    delete:
+      tags:
+        - Users
+      summary: 現在のユーザーのアカウントを削除
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: User deleted successfully.
+        '401':
+          description: Unauthorized.
+
+  /garbage/identify:
+    post:
+      tags:
+        - Garbage
+      summary: 画像からゴミを識別
+      description: 画像をアップロードしてゴミの種類を識別します。AIサービスと連携する可能性があります。
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                image:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Identification result.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: string
+                    example: "ペットボトル"
+                  category:
+                    type: string
+                    example: "資源ごみ"
+                  description:
+                    type: string
+                    example: "キャップとラベルを外し、中をすすいでから捨ててください。"
+        '400':
+          description: No image provided.
+        '401':
+          description: Unauthorized.
+
+  /garbage/search:
+    get:
+      tags:
+        - Garbage
+      summary: 名前でゴミを検索
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          description: The name of the garbage item to search for.
+      responses:
+        '200':
+          description: Search results.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Manual'
+        '401':
+          description: Unauthorized.
+
+  /users/me/bin-days:
+    get:
+      tags:
+        - BinDays
+      summary: ユーザーのゴミ収集日を取得
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: A list of garbage collection days.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BinDay'
+        '401':
+          description: Unauthorized.
+    post:
+      tags:
+        - BinDays
+      summary: 新しい収集日スケジュールを追加
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BinDayInput'
+      responses:
+        '201':
+          description: Schedule created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BinDay'
+        '401':
+          description: Unauthorized.
+
+  /manuals:
+    get:
+      tags:
+        - Manuals
+      summary: すべてのゴミマニュアルを取得
+      responses:
+        '200':
+          description: A list of manuals.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Manual'
+
+  /manuals/{manualId}:
+    get:
+      tags:
+        - Manuals
+      summary: IDで特定のゴミマニュアルを取得
+      parameters:
+        - name: manualId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Manual details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Manual'
+        '404':
+          description: Manual not found.
+
+  /users/me/histories:
+    get:
+      tags:
+        - Histories
+      summary: ユーザーの検索履歴を取得
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: A list of search history records.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/History'
+        '401':
+          description: Unauthorized.
+
+  /users/me/notifications:
+    get:
+      tags:
+        - Notifications
+      summary: ユーザーの通知設定を取得
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Notification settings.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+        '401':
+          description: Unauthorized.
+    put:
+      tags:
+        - Notifications
+      summary: ユーザーの通知設定を更新
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationInput'
+      responses:
+        '200':
+          description: Settings updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+        '401':
+          description: Unauthorized.
+
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "Taro Yamada"
+        email:
+          type: string
+          format: email
+          example: "taro@example.com"
+        address:
+          $ref: '#/components/schemas/Address'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    Address:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        city:
+          type: string
+          example: "大阪市"
+        ward:
+          type: string
+          example: "北区"
+        town:
+          type: string
+          example: "梅田"
+    BinDay:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        type:
+          type: string
+          description: "例: '普通ごみ', '資源ごみ'"
+          example: "普通ごみ"
+        dayOfWeek:
+          type: string
+          description: "例: '月曜日', '火曜日'"
+          example: "月曜日"
+        week:
+          type: string
+          nullable: true
+          description: "例: '第1', '第3'"
+          example: "第1"
+    BinDayInput:
+      type: object
+      properties:
+        type:
+          type: string
+          description: "例: '普通ごみ', '資源ごみ'"
+          example: "普通ごみ"
+        dayOfWeek:
+          type: string
+          description: "例: '月曜日', '火曜日'"
+          example: "月曜日"
+        week:
+          type: string
+          nullable: true
+          description: "例: '第1', '第3'"
+          example: "第1"
+    Manual:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 101
+        name:
+          type: string
+          example: "ペットボトル"
+        hiragana:
+          type: string
+          example: "ぺっとぼとる"
+        category:
+          type: string
+          example: "資源ごみ"
+        remarks:
+          type: string
+          example: "キャップ・ラベルをはずして、中を軽くすすいで、横につぶして出して下さい。"
+    History:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        query:
+          type: string
+          example: "スプレー缶"
+        createdAt:
+          type: string
+          format: date-time
+    Notification:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        type:
+          type: string
+          description: "通知の種類、例: 'リマインダー'"
+          example: "リマインダー"
+        time:
+          type: string
+          format: time
+          example: "20:00:00"
+        enabled:
+          type: boolean
+          example: true
+    NotificationInput:
+      type: object
+      properties:
+        time:
+          type: string
+          format: time
+          example: "21:00:00"
+        enabled:
+          type: boolean
+          example: false
+    AuthResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
