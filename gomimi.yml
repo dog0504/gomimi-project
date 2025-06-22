@@ -2,6 +2,19 @@ openapi: '3.0.3'
 info:
   title: ゴミミのAPI
   version: '1.0'
+  description: |
+    このAPIはゴミ分別や収集日管理をサポートするためのものです。
+    認証にはJWTトークンを使用します。以下の手順で認証を行ってください。
+
+    1. `/auth/login` エンドポイントを使用して、メールアドレスとパスワードを送信し、JWTトークンを取得します。
+    2. 取得したトークンをリクエストヘッダーの `Authorization` フィールドに `Bearer <トークン>` の形式で設定します。
+    3. 認証が必要なエンドポイントにアクセスします。
+
+    例:
+    ```
+    Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+    ```
+
 servers:
   - url: https://{APIのサーバーIP}/api
 
@@ -19,7 +32,7 @@ tags:
   - name: Histories
     description: ユーザーの履歴
   - name: Notifications
-    description: 通知設定
+    description: 通知設定(検討中)
 
 paths:
   /auth/register:
@@ -34,6 +47,14 @@ paths:
           application/json:
             schema:
               type: object
+              required:
+                - email
+                - password
+                - language
+                - postal-code
+                - city
+                - ward
+                - town
               properties:
                 email:
                   type: string
@@ -43,6 +64,12 @@ paths:
                   type: string
                   format: password
                   example: "password123"
+                language:
+                  type: string
+                  format: language
+                  example: "ja"
+                address:
+                  $ref: '#/components/schemas/Address'
       responses:
         '201':
           description: User successfully registered.
@@ -187,11 +214,11 @@ paths:
     get:
       tags:
         - Garbage
-      summary: 名前でゴミを検索
+      summary: 名前でゴミを検索(検討中)(配列)
       security:
         - bearerAuth: []
       parameters:
-        - name: q
+        - name: keyword
           in: query
           required: true
           schema:
@@ -213,7 +240,7 @@ paths:
     get:
       tags:
         - BinDays
-      summary: ユーザーのゴミ収集日を取得
+      summary: ユーザーのゴミ収集日を取得(配列)
       security:
         - bearerAuth: []
       responses:
@@ -227,36 +254,44 @@ paths:
                   $ref: '#/components/schemas/BinDay'
         '401':
           description: Unauthorized.
-    post:
-      tags:
-        - BinDays
-      summary: 新しい収集日スケジュールを追加
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/BinDayInput'
-      responses:
-        '201':
-          description: Schedule created.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BinDay'
-        '401':
-          description: Unauthorized.
 
   /manuals:
     get:
       tags:
         - Manuals
-      summary: すべてのゴミマニュアルを取得
+      summary: すべてのゴミ名とIDを取得(配列)
       responses:
         '200':
           description: A list of manuals.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                      example: 101
+                    name:
+                      type: string
+                      example: "ペットボトル"
+
+  /manuals/search:
+    get:
+      tags:
+        - Manuals
+      summary: 名前でゴミマニュアルを検索(配列)
+      parameters:
+        - name: keyword
+          in: query
+          required: true
+          schema:
+            type: string
+          description: The name of the garbage manual to search for.
+      responses:
+        '200':
+          description: Search results.
           content:
             application/json:
               schema:
@@ -289,7 +324,7 @@ paths:
     get:
       tags:
         - Histories
-      summary: ユーザーの検索履歴を取得
+      summary: ユーザーの履歴を取得(配列)
       security:
         - bearerAuth: []
       parameters:
@@ -358,30 +393,27 @@ components:
     User:
       type: object
       properties:
-        id:
-          type: integer
-          example: 1
-        name:
+        password:
           type: string
-          example: "Taro Yamada"
+          format: password
+          example: "password123"
         email:
           type: string
           format: email
           example: "taro@example.com"
         address:
           $ref: '#/components/schemas/Address'
-        createdAt:
+        language:
           type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
+          format: language
+          example: "ja"
     Address:
       type: object
       properties:
-        id:
-          type: integer
-          example: 1
+        postal-code:
+          type: string
+          format: postal-code
+          example: "530-0001"
         city:
           type: string
           example: "大阪市"
@@ -390,7 +422,16 @@ components:
           example: "北区"
         town:
           type: string
-          example: "梅田"
+          example: "浮田"
+        chom:
+          type: string 
+          example: "1丁目"
+        street:
+          type: string
+          example: "１番"
+        inf:
+          type: string
+          example: ""
     BinDay:
       type: object
       properties:
@@ -405,27 +446,11 @@ components:
           type: string
           description: "例: '月曜日', '火曜日'"
           example: "月曜日"
-        week:
+        time:
           type: string
           nullable: true
-          description: "例: '第1', '第3'"
-          example: "第1"
-    BinDayInput:
-      type: object
-      properties:
-        type:
-          type: string
-          description: "例: '普通ごみ', '資源ごみ'"
-          example: "普通ごみ"
-        dayOfWeek:
-          type: string
-          description: "例: '月曜日', '火曜日'"
-          example: "月曜日"
-        week:
-          type: string
-          nullable: true
-          description: "例: '第1', '第3'"
-          example: "第1"
+          description: "例: '8:30~10:30'"
+          example: "8:30~10:30"
     Manual:
       type: object
       properties:
@@ -435,9 +460,6 @@ components:
         name:
           type: string
           example: "ペットボトル"
-        hiragana:
-          type: string
-          example: "ぺっとぼとる"
         category:
           type: string
           example: "資源ごみ"
