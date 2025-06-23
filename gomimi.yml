@@ -16,7 +16,12 @@ info:
     ```
 
 servers:
-  - url: https://{APIのサーバーIP}/api
+  - url: https://{APIのサーバーIP}/api/v1
+    description: ゴミミのAPIサーバー
+    variables:
+      APIのサーバーIP:
+        default: gomimi.example.com
+        description: APIサーバーのIPアドレスまたはホスト名
 
 tags:
   - name: Auth
