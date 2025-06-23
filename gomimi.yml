@@ -18,10 +18,8 @@ info:
 servers:
   - url: https://api.sitapp.org/api/v1
     description: ゴミミのAPIサーバー
-    variables:
-      APIのサーバーIP:
-        default: gomimi.example.com
-        description: APIサーバーのIPアドレスまたはホスト名
+  - url: http://localhost:8000
+    description: ローカル開発サーバー
 
 tags:
   - name: Auth
