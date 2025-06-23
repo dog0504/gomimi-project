@@ -1,9 +1,176 @@
 import fs from 'fs';
 import path from 'path';
-import csv from 'csv-parser'; // csv-parserのインポート
+import csv from 'csv-parser';
 import { AppDataSource } from './data-source';
-import { BinDay } from './entity/BinDay';
+import { Address } from './entity/Address';
+import { GarbageType } from './entity/GarbageType';
+import { CollectionSchedule } from './entity/CollectionSchedule';
 import { Manuals } from './entity/Manual';
+
+const CSV_DIR = path.join(__dirname, '../csv');
+
+/**
+ * 'Address' テーブルにCSVデータを挿入する
+ */
+async function seedAddresses(): Promise<void> {
+  const addressRepository = AppDataSource.getRepository(Address);
+  const count = await addressRepository.count();
+  if (count > 0) {
+    console.log('Address テーブルには既にデータが存在するため、スキップします。');
+    return;
+  }
+
+  console.log('Address テーブルにデータを挿入します...');
+  const csvFilePath = path.join(CSV_DIR, 'addresses_with_zipcode_v2.csv');
+
+  return new Promise((resolve, reject) => {
+    fs.createReadStream(csvFilePath)
+      .pipe(csv({ headers: ['address_id', 'zip', 'city', 'ward', 'town', 'chome', 'street', 'inf'] }))
+      .on('data', async (data) => {
+        try {
+          const addressId = parseInt(data.address_id, 10);
+          if (isNaN(addressId)) {
+            console.warn(`Invalid address_id: ${data.address_id}, skipping entry.`);
+            return;
+          }
+          const address = new Address();
+          address.addressId = addressId;
+          address.zip = data.zip;
+          address.city = data.city;
+          address.ward = data.ward;
+          address.town = data.town;
+          address.chom = data.chome || null;
+          address.street = data.street || null;
+          address.inf = data.inf || null;
+          await addressRepository.save(address);
+        } catch (error) {
+          console.error(`Error inserting address: ${String(error)}`);
+        }
+      })
+      .on('end', resolve)
+      .on('error', reject);
+  });
+}
+
+/**
+ * 'GarbageType' テーブルにCSVデータを挿入する
+ */
+async function seedGarbageTypes(): Promise<void> {
+  const garbageTypeRepository = AppDataSource.getRepository(GarbageType);
+  const count = await garbageTypeRepository.count();
+  if (count > 0) {
+    console.log('GarbageType テーブルには既にデータが存在するため、スキップします。');
+    return;
+  }
+
+  console.log('GarbageType テーブルにデータを挿入します...');
+  const csvFilePath = path.join(CSV_DIR, 'garbage_types.csv');
+
+  return new Promise((resolve, reject) => {
+    fs.createReadStream(csvFilePath)
+      .pipe(csv({ headers: ['garbage_type_name','garbage_type_id'] }))
+      .on('data', async (data) => {
+        try {
+          const garbageTypeId = parseInt(data.garbage_type_id, 10);
+          if (isNaN(garbageTypeId)) {
+            console.warn(`Invalid garbage_type_id: ${data.garbage_type_id}, skipping entry.`);
+            return;
+          }
+
+          const garbageType = new GarbageType();
+          garbageType.garbageTypeId = garbageTypeId;
+          garbageType.garbageTypeName = data.garbage_type_name;
+          await garbageTypeRepository.save(garbageType);
+        } catch (error) {
+          console.error(`Error inserting garbage type: ${String(error)}`);
+        }
+      })
+      .on('end', resolve)
+      .on('error', reject);
+  });
+}
+
+/**
+ * 'CollectionSchedule' テーブルにCSVデータを挿入する
+ */
+async function seedCollectionSchedules(): Promise<void> {
+  const scheduleRepository = AppDataSource.getRepository(CollectionSchedule);
+  const count = await scheduleRepository.count();
+  if (count > 0) {
+    console.log('CollectionSchedule テーブルには既にデータが存在するため、スキップします。');
+    return;
+  }
+
+  console.log('CollectionSchedule テーブルにデータを挿入します...');
+  const csvFilePath = path.join(CSV_DIR, 'collection_schedules.csv');
+
+  return new Promise((resolve, reject) => {
+    fs.createReadStream(csvFilePath)
+      .pipe(csv({ headers: ['address_id', 'garbage_type_id', 'collection_day', 'collection_time'] }))
+      .on('data', async (data) => {
+        try {
+          const addressId = parseInt(data.address_id, 10);
+          const garbageTypeId = parseInt(data.garbage_type_id, 10);
+
+          if (isNaN(addressId) || isNaN(garbageTypeId)) {
+            console.warn(`Invalid address_id or garbage_type_id: address_id=${data.address_id}, garbage_type_id=${data.garbage_type_id}, skipping entry.`);
+            return;
+          }
+
+          const schedule = new CollectionSchedule();
+          schedule.addressId = addressId;
+          schedule.garbageTypeId = garbageTypeId;
+          schedule.collectionDay = data.collection_day;
+          schedule.collectionTime = data.collection_time;
+          await scheduleRepository.save(schedule);
+        } catch (error) {
+          console.error(`Error inserting collection schedule: ${String(error)}`);
+        }
+      })
+      .on('end', resolve)
+      .on('error', reject);
+  });
+}
+
+/**
+ * 'Manuals' テーブルにCSVデータを挿入する
+ */
+async function seedManuals(): Promise<void> {
+  const manualRepository = AppDataSource.getRepository(Manuals);
+  const count = await manualRepository.count();
+  if (count > 0) {
+    console.log('Manuals テーブルには既にデータが存在するため、スキップします。');
+    return;
+  }
+
+  console.log('Manuals テーブルにデータを挿入します...');
+  const csvFilePath = path.join(CSV_DIR, 'garbage_list.csv');
+
+  return new Promise((resolve, reject) => {
+    fs.createReadStream(csvFilePath)
+      .pipe(csv({ headers: ['word', 'garbage', 'g_type', 'contents'] }))
+      .on('data', async (data) => {
+        const manual = new Manuals();
+        manual.garbage = data.garbage;
+        manual.gType = data.g_type;
+        manual.contents = data.contents || null;
+        manual.word = data.word;
+        await manualRepository.save(manual);
+      })
+      .on('end', resolve)
+      .on('error', reject);
+  });
+}
+
+/**
+ * データベースにCSVデータを挿入する
+ */
+export async function seedDatabase(): Promise<void> {
+  await seedAddresses();
+  await seedGarbageTypes();
+  await seedCollectionSchedules();
+  await seedManuals(); // Manuals のデータ挿入を追加
+}
 
 /**
  * データソースの初期化を行う関数
@@ -32,128 +199,5 @@ export async function initDataSource(retries = 5, delay = 5000): Promise<void> {
             // 再試行まで待機
             await new Promise((resolve) => setTimeout(resolve, delay));
         }
-    }
-}
-
-// CSVファイルが配置されているディレクトリ
-const CSV_DIR = path.join(__dirname, '../csv');
-
-/**
- * 'BIN_DAY' テーブルにCSVデータが存在しない場合のみ挿入する
- * @param dataSource TypeORMのDataSourceインスタンス
- */
-async function seedBinDay(): Promise<void> {
-    const binDayRepository = AppDataSource.getRepository(BinDay);
-    
-    // 1. テーブルが空かどうかチェック
-    const count = await binDayRepository.count();
-    if (count > 0) {
-        console.log('BIN_DAY テーブルには既にデータが存在するため、スキップします。');
-        return;
-    }
-    
-    console.log('BIN_DAY テーブルにデータを挿入します...');
-    const results: BinDay[] = [];
-    const csvFilePath = path.join(CSV_DIR, 'mysql_data.csv'); // SQLファイルに記載のCSV
-
-    // SQLのLOAD DATA文のカラム順序に合わせてヘッダーを明示的に定義
-    const headers = ['CITY', 'WARD', 'TOWN', 'CHOM', 'STREET', 'INF', 'RUDDISH', 'DAYS', 'C_TIME'];
-
-
-    return new Promise((resolve, reject) => {
-        fs.createReadStream(csvFilePath)
-        // headersオプションを追加し、CSVの1行目(ヘッダー行)をスキップする
-        .pipe(csv({ headers: headers, skipLines: 1 })) // IGNORE 1 ROWS と同等の処理
-        .on('data', (data) => {
-            const binDay = new BinDay();
-            // SQLのカラム指定に合わせてマッピング
-            binDay.city = data.CITY;
-            binDay.ward = data.WARD;
-            binDay.town = data.TOWN;
-            binDay.chom = data.CHOM;
-            binDay.street = data.STREET;
-            binDay.inf = data.INF || null; // INFはNULLを許容する場合
-            binDay.ruddish = data.RUDDISH;
-            binDay.days = data.DAYS;
-            binDay.cTime = data.C_TIME;
-            results.push(binDay);
-        })
-        .on('end', async () => {
-            // results配列が空でないことを確認してから保存する
-            if (results.length === 0) {
-                console.warn('BIN_DAY テーブルに挿入するデータが見つかりませんでした。CSVファイルが空または形式が不正の可能性があります。');
-                return resolve();
-            }
-            try {
-            // チャンクに分けて挿入すると、大量データでもメモリに優しい
-            await binDayRepository.save(results, { chunk: 500 });
-            console.log('BIN_DAY テーブルへのデータ挿入が完了しました。');
-            resolve();
-            } catch (error) {
-            console.error('BIN_DAY テーブルへのデータ挿入中にエラーが発生しました:', error);
-            reject(error);
-            }
-        });
-    });
-}
-
-/**
- * 'MANUALS' テーブルにCSVデータが存在しない場合のみ挿入する
- * @param dataSource TypeORMのDataSourceインスタンス
- */
-async function seedManuals(): Promise<void> {
-    const manualsRepository = AppDataSource.getRepository(Manuals);
-
-    const count = await manualsRepository.count();
-    if (count > 0) {
-        console.log('MANUALS テーブルには既にデータが存在するため、スキップします。');
-        return;
-    }
-    
-    console.log('MANUALS テーブルにデータを挿入します...');
-    const results: Manuals[] = [];
-    const csvFilePath = path.join(CSV_DIR, 'garbage_list.csv'); // SQLファイルに記載のCSV
-
-    // SQLの `(@col1, @col2, @col3, @col4)` はヘッダーがないか、ヘッダーを無視して列の順序で読むことを意味するため、
-    // csv-parserのheadersオプションでマッピングを定義する
-    const headers = ['WORD', 'GARBAGE', 'G_TYPE', 'CONTENTS'];
-
-    return new Promise((resolve, reject) => {
-        fs.createReadStream(csvFilePath)
-        .pipe(csv({ headers: headers, skipLines: 1 })) // IGNORE 1 ROWS
-        .on('data', (data) => {
-            const manual = new Manuals();
-            // SQLのSET句に合わせてマッピング
-            manual.word = data.WORD;
-            manual.garbage = data.GARBAGE;
-            manual.gType = data.G_TYPE;
-            manual.contents = data.CONTENTS;
-            results.push(manual);
-        })
-        .on('end', async () => {
-            try {
-            await manualsRepository.save(results, { chunk: 500 });
-            console.log('MANUALS テーブルへのデータ挿入が完了しました。');
-            resolve();
-            } catch (error) {
-            console.error('MANUALS テーブルへのデータ挿入中にエラーが発生しました:', error);
-            reject(error);
-            }
-        });
-    });
-}
-
-/**
- * データベースの初期化処理（シーディング）を実行する
- * @param dataSource TypeORMのDataSourceインスタンス
- */
-export async function seedDatabase(): Promise<void> {
-    try {
-        console.log('データベースの初期データ挿入処理を開始します...');
-        await seedBinDay();
-        await seedManuals();
-        console.log('すべてのデータ挿入処理が完了しました。');
-    } catch (error) {
-        console.error('データベースの初期化中にエラーが発生しました:', error);
     }
 }

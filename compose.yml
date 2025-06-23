@@ -63,7 +63,7 @@ services:
       MYSQL_USER: guest # ゲストユーザー
       MYSQL_PASSWORD: 3923
     volumes:
-      # - mysql-data:/var/lib/mysql # MySQLのデータ永続化
+      - mysql-data:/var/lib/mysql # MySQLのデータ永続化
       - ./mysql/conf.d:/etc/mysql/conf.d #2025/06/13ホストのディレクトリをコンテナにマウント
       - ./csv:/mnt/csv # CSVファイルをコンテナ内の/csvにマウント
     networks:

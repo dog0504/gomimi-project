@@ -9,8 +9,8 @@ import { initDataSource, seedDatabase } from "./initDataSource";
 initDataSource()
     .then(async () => {
 //         // データの登録
-//         await seedDatabase();
-//         console.log("データベースの初期化が完了しました。");
+        await seedDatabase();
+        console.log("データベースの初期化が完了しました。");
     })
     .catch((error) => {
         console.error('Error during Data Source initialization:', error);

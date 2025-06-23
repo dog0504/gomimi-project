@@ -13,7 +13,7 @@ export class Manuals {
   @Column({ type: 'varchar', name: 'G_TYPE', length: 50, nullable: false })
   gType!: string; // 分別区分 
 
-  @Column({ type: 'text', name: 'CONTENTS', nullable: false })
+  @Column({ type: 'text', name: 'CONTENTS', nullable: true })
   contents!: string; // 分別注意文 
 
   @Column({ type: 'varchar', name: 'WORD', length: 4, nullable: false })
