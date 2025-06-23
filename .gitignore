@@ -12,3 +12,4 @@ backend/csv/addresses_with_zipcode_v2.csv
 backend/csv/collection_schedules.csv
 backend/csv/garbage_types.csv
 backend/csv/osaka-cyty.csv
+*.sql
