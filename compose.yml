@@ -15,23 +15,6 @@ services:
       "
     networks:
       - app_network
-  # FastAPI アプリケーションサービス (APIサーバー)
-  # api_service:
-  #   build:
-  #     context: ./api_service # FastAPIアプリのコードがあるディレクトリ
-  #     dockerfile: Dockerfile
-  #   container_name: api_service
-  #   ports:
-  #     - "8000:8000" # ホストOSのポート:コンテナのポート
-  #   volumes:
-  #     - ./api_service:/usr/src/python # ホストの./api_serviceをコンテナの/usr/src/pythonにマウント
-  #   depends_on: # 起動順序の制御
-  #     - db_service
-  #     - ai_service  
-  #   networks: # サービス間通信用のネットワーク
-  #     - app_network
-  #   environment:
-  #     - AI_SERVICE_URL=http://ai_service:5001 # AIサービスのエンドポイント
 
   # Python AIサービス (画像認識など)
   ai_service:
@@ -64,8 +47,8 @@ services:
       MYSQL_PASSWORD: 3923
     volumes:
       - mysql-data:/var/lib/mysql # MySQLのデータ永続化
-      - ./mysql/conf.d:/etc/mysql/conf.d #2025/06/13ホストのディレクトリをコンテナにマウント
-      - ./csv:/mnt/csv # CSVファイルをコンテナ内の/csvにマウント
+      # - ./mysql/conf.d:/etc/mysql/conf.d #2025/06/13ホストのディレクトリをコンテナにマウント
+      # - ./csv:/mnt/csv # CSVファイルをコンテナ内の/csvにマウント
     networks:
       - app_network
 

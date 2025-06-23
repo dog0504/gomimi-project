@@ -36,6 +36,8 @@ tags:
     description: ゴミ分別マニュアル
   - name: Histories
     description: ユーザーの履歴
+  - name: Addresses
+    description: 住所操作
   - name: Notifications
     description: 通知設定(検討中)
 
@@ -57,9 +59,6 @@ paths:
                 - password
                 - language
                 - postal-code
-                - city
-                - ward
-                - town
               properties:
                 email:
                   type: string
@@ -74,7 +73,7 @@ paths:
                   format: language
                   example: "ja"
                 address:
-                  $ref: '#/components/schemas/Address'
+                  $ref: '#/components/schemas/AddressInput'
       responses:
         '201':
           description: User successfully registered.
@@ -149,11 +148,12 @@ paths:
             schema:
               type: object
               properties:
-                name:
+                email:
                   type: string
-                  example: "Taro Yamada"
+                  format: email
+                  example: "taro@example.com"
                 address:
-                  $ref: '#/components/schemas/Address'
+                  $ref: '#/components/schemas/AddressInput'
       responses:
         '200':
           description: Profile updated successfully.
@@ -302,7 +302,44 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Manual'
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                      example: 101
+                    name:
+                      type: string
+                      example: "ペットボトル"
+  
+  /manuals/search/initials:
+    get:
+      tags:
+        - Manuals
+      summary: 頭文字からマニュアルを検索(配列)
+      parameters:
+        - name: initial
+          in: query
+          required: true
+          schema:
+            type: string
+            maxLength: 1
+          description: The initial character to filter garbage manuals.
+      responses:
+        '200':
+          description: Search results by initial.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                      example: 101
+                    name:
+                      type: string
+                      example: "ペットボトル"
 
   /manuals/{manualId}:
     get:
@@ -354,6 +391,29 @@ paths:
                   $ref: '#/components/schemas/History'
         '401':
           description: Unauthorized.
+
+  /addresses/search:
+    get:
+      tags:
+        - Addresses
+      summary: 郵便番号から住所を検索(配列)
+      parameters:
+        - name: postalCode
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "5300001"
+          description: The postal code to search for.
+      responses:
+        '200':
+          description: Address details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Address'
+        '404':
+          description: Address not found.
 
   /users/me/notifications:
     get:
@@ -415,10 +475,13 @@ components:
     Address:
       type: object
       properties:
+        id:
+          type: integer
+          example: 1
         postal-code:
           type: string
           format: postal-code
-          example: "530-0001"
+          example: "5300033"
         city:
           type: string
           example: "大阪市"
@@ -427,16 +490,23 @@ components:
           example: "北区"
         town:
           type: string
-          example: "浮田"
+          example: "池田町"
         chom:
           type: string 
-          example: "1丁目"
+          example: "1番"
         street:
           type: string
-          example: "１番"
+          example: ""
         inf:
           type: string
-          example: ""
+          example: "ローレルハイツ北天満"
+    AddressInput:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        
     BinDay:
       type: object
       properties:

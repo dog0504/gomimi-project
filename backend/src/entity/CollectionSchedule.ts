@@ -13,10 +13,10 @@ export class CollectionSchedule {
   @Column({ type: 'int', name: 'GARBAGE_TYPE_ID', nullable: false })
   garbageTypeId!: number; // ゴミの種類ID
 
-  @Column({ type: 'varchar', name: 'COLLECTION_DAY', length: 30, nullable: false })
+  @Column({ type: 'varchar', name: 'COLLECTION_DAY', length: 60, nullable: false })
   collectionDay!: string; // 収集日
 
-  @Column({ type: 'varchar', name: 'COLLECTION_TIME', length: 30, nullable: false })
+  @Column({ type: 'varchar', name: 'COLLECTION_TIME', length: 128, nullable: false })
   collectionTime!: string; // 収集時間
 
   @ManyToOne(() => GarbageType, (garbageType) => garbageType.schedules)

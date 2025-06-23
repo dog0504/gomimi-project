@@ -23,7 +23,10 @@ async function seedAddresses(): Promise<void> {
   console.log('Address テーブルにデータを挿入します...');
   const csvFilePath = path.join(CSV_DIR, 'addresses_with_zipcode_v2.csv');
 
+  const failedEntries: any[] = [];
   return new Promise((resolve, reject) => {
+    let success = 0;
+    let fail = 0;
     fs.createReadStream(csvFilePath)
       .pipe(csv({ headers: ['address_id', 'zip', 'city', 'ward', 'town', 'chome', 'street', 'inf'] }))
       .on('data', async (data) => {
@@ -43,11 +46,20 @@ async function seedAddresses(): Promise<void> {
           address.street = data.street || null;
           address.inf = data.inf || null;
           await addressRepository.save(address);
+          success++;
         } catch (error) {
           console.error(`Error inserting address: ${String(error)}`);
+          fail++;
+          failedEntries.push(data);
         }
       })
-      .on('end', resolve)
+      .on('end', () => {
+        console.log(`Address: 成功 ${success}件, 失敗 ${fail}件`);
+        if (failedEntries.length > 0) {
+          console.log('失敗したデータ:', failedEntries);
+        }
+        resolve(undefined);
+      })
       .on('error', reject);
   });
 }
@@ -66,7 +78,10 @@ async function seedGarbageTypes(): Promise<void> {
   console.log('GarbageType テーブルにデータを挿入します...');
   const csvFilePath = path.join(CSV_DIR, 'garbage_types.csv');
 
+  const failedEntries: any[] = [];
   return new Promise((resolve, reject) => {
+    let success = 0;
+    let fail = 0;
     fs.createReadStream(csvFilePath)
       .pipe(csv({ headers: ['garbage_type_name','garbage_type_id'] }))
       .on('data', async (data) => {
@@ -81,11 +96,20 @@ async function seedGarbageTypes(): Promise<void> {
           garbageType.garbageTypeId = garbageTypeId;
           garbageType.garbageTypeName = data.garbage_type_name;
           await garbageTypeRepository.save(garbageType);
+          success++;
         } catch (error) {
           console.error(`Error inserting garbage type: ${String(error)}`);
+          fail++;
+          failedEntries.push(data);
         }
       })
-      .on('end', resolve)
+      .on('end', () => {
+        console.log(`GarbageType: 成功 ${success}件, 失敗 ${fail}件`);
+        if (failedEntries.length > 0) {
+          console.log('失敗したデータ:', failedEntries);
+        }
+        resolve(undefined);
+      })
       .on('error', reject);
   });
 }
@@ -104,30 +128,46 @@ async function seedCollectionSchedules(): Promise<void> {
   console.log('CollectionSchedule テーブルにデータを挿入します...');
   const csvFilePath = path.join(CSV_DIR, 'collection_schedules.csv');
 
+  const failedEntries: any[] = [];
+  // すべてのデータを一度配列にためてから逐次的に保存する
   return new Promise((resolve, reject) => {
+    const rows: any[] = [];
     fs.createReadStream(csvFilePath)
       .pipe(csv({ headers: ['address_id', 'garbage_type_id', 'collection_day', 'collection_time'] }))
-      .on('data', async (data) => {
-        try {
-          const addressId = parseInt(data.address_id, 10);
-          const garbageTypeId = parseInt(data.garbage_type_id, 10);
-
-          if (isNaN(addressId) || isNaN(garbageTypeId)) {
-            console.warn(`Invalid address_id or garbage_type_id: address_id=${data.address_id}, garbage_type_id=${data.garbage_type_id}, skipping entry.`);
-            return;
-          }
-
-          const schedule = new CollectionSchedule();
-          schedule.addressId = addressId;
-          schedule.garbageTypeId = garbageTypeId;
-          schedule.collectionDay = data.collection_day;
-          schedule.collectionTime = data.collection_time;
-          await scheduleRepository.save(schedule);
-        } catch (error) {
-          console.error(`Error inserting collection schedule: ${String(error)}`);
-        }
+      .on('data', (data) => {
+        rows.push(data);
       })
-      .on('end', resolve)
+      .on('end', async () => {
+        let success = 0;
+        let fail = 0;
+        for (const data of rows) {
+          try {
+            const addressId = parseInt(data.address_id, 10);
+            const garbageTypeId = parseInt(data.garbage_type_id, 10);
+            if (isNaN(addressId) || isNaN(garbageTypeId)) {
+              console.warn(`Invalid address_id or garbage_type_id: address_id=${data.address_id}, garbage_type_id=${data.garbage_type_id}, skipping entry.`);
+              fail++;
+              continue;
+            }
+            const schedule = new CollectionSchedule();
+            schedule.addressId = addressId;
+            schedule.garbageTypeId = garbageTypeId;
+            schedule.collectionDay = data.collection_day;
+            schedule.collectionTime = data.collection_time;
+            await scheduleRepository.save(schedule);
+            success++;
+          } catch (error) {
+            console.error(`Error inserting collection schedule: ${String(error)}`);
+            fail++;
+            failedEntries.push(data);
+          }
+        }
+        console.log(`CollectionSchedule: 成功 ${success}件, 失敗 ${fail}件`);
+        if (failedEntries.length > 0) {
+          console.log('失敗したデータ:', failedEntries);
+        }
+        resolve(undefined);
+      })
       .on('error', reject);
   });
 }
@@ -146,18 +186,34 @@ async function seedManuals(): Promise<void> {
   console.log('Manuals テーブルにデータを挿入します...');
   const csvFilePath = path.join(CSV_DIR, 'garbage_list.csv');
 
+  // const failedEntries: any[] = [];
   return new Promise((resolve, reject) => {
+    let success = 0;
+    let fail = 0;
     fs.createReadStream(csvFilePath)
       .pipe(csv({ headers: ['word', 'garbage', 'g_type', 'contents'] }))
       .on('data', async (data) => {
-        const manual = new Manuals();
-        manual.garbage = data.garbage;
-        manual.gType = data.g_type;
-        manual.contents = data.contents || null;
-        manual.word = data.word;
-        await manualRepository.save(manual);
+        try {
+          const manual = new Manuals();
+          manual.garbage = data.garbage;
+          manual.gType = data.g_type;
+          manual.contents = data.contents || null;
+          manual.word = data.word;
+          await manualRepository.save(manual);
+          success++;
+        } catch (error) {
+          console.error(`Error inserting manual: ${String(error)}`);
+          fail++;
+          // failedEntries.push(data);
+        }
       })
-      .on('end', resolve)
+      .on('end', () => {
+        console.log(`Manuals: 成功 ${success}件, 失敗 ${fail}件`);
+        // if (failedEntries.length > 0) {
+        //   console.log('失敗したデータ:', failedEntries);
+        // }
+        resolve(undefined);
+      })
       .on('error', reject);
   });
 }
@@ -166,10 +222,10 @@ async function seedManuals(): Promise<void> {
  * データベースにCSVデータを挿入する
  */
 export async function seedDatabase(): Promise<void> {
-  await seedAddresses();
-  await seedGarbageTypes();
-  await seedCollectionSchedules();
-  await seedManuals(); // Manuals のデータ挿入を追加
+//   await seedAddresses();
+//   await seedGarbageTypes();
+  // await seedCollectionSchedules();
+  // await seedManuals(); // Manuals のデータ挿入を追加
 }
 
 /**

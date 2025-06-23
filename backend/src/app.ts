@@ -8,8 +8,8 @@ import { initDataSource, seedDatabase } from "./initDataSource";
 // データソースの初期化を行う関数を呼び出す
 initDataSource()
     .then(async () => {
-//         // データの登録
-        await seedDatabase();
+        // データの登録
+        // await seedDatabase();
         console.log("データベースの初期化が完了しました。");
     })
     .catch((error) => {
