@@ -93,8 +93,8 @@ async function seedGarbageTypes(): Promise<void> {
           }
 
           const garbageType = new GarbageType();
-          garbageType.garbageTypeId = garbageTypeId;
-          garbageType.garbageTypeName = data.garbage_type_name;
+          garbageType.id = garbageTypeId;
+          garbageType.type = data.garbage_type_name;
           await garbageTypeRepository.save(garbageType);
           success++;
         } catch (error) {
@@ -119,6 +119,8 @@ async function seedGarbageTypes(): Promise<void> {
  */
 async function seedCollectionSchedules(): Promise<void> {
   const scheduleRepository = AppDataSource.getRepository(CollectionSchedule);
+  const addressRepository = AppDataSource.getRepository(Address);
+  const garbageTypeRepository = AppDataSource.getRepository(GarbageType);
   const count = await scheduleRepository.count();
   if (count > 0) {
     console.log('CollectionSchedule テーブルには既にデータが存在するため、スキップします。');
@@ -142,16 +144,16 @@ async function seedCollectionSchedules(): Promise<void> {
         let fail = 0;
         for (const data of rows) {
           try {
-            const addressId = parseInt(data.address_id, 10);
-            const garbageTypeId = parseInt(data.garbage_type_id, 10);
-            if (isNaN(addressId) || isNaN(garbageTypeId)) {
-              console.warn(`Invalid address_id or garbage_type_id: address_id=${data.address_id}, garbage_type_id=${data.garbage_type_id}, skipping entry.`);
+            const address = await addressRepository.findOneBy({ addressId: parseInt(data.address_id, 10) });
+            const garbageType = await garbageTypeRepository.findOneBy({ id: parseInt(data.garbage_type_id, 10) });
+            if (!address || !garbageType) {
+              console.warn(`Invalid address or garbageType: address_id=${data.address_id}, garbage_type_id=${data.garbage_type_id}, skipping entry.`);
               fail++;
               continue;
             }
             const schedule = new CollectionSchedule();
-            schedule.addressId = addressId;
-            schedule.garbageTypeId = garbageTypeId;
+            schedule.addressId = address; // リレーションを設定
+            schedule.garbageTypeId = garbageType; // リレーションを設定
             schedule.collectionDay = data.collection_day;
             schedule.collectionTime = data.collection_time;
             await scheduleRepository.save(schedule);
@@ -196,7 +198,7 @@ async function seedManuals(): Promise<void> {
         try {
           const manual = new Manuals();
           manual.garbage = data.garbage;
-          manual.gType = data.g_type;
+          manual.type = data.g_type;
           manual.contents = data.contents || null;
           manual.word = data.word;
           await manualRepository.save(manual);
@@ -222,10 +224,10 @@ async function seedManuals(): Promise<void> {
  * データベースにCSVデータを挿入する
  */
 export async function seedDatabase(): Promise<void> {
-//   await seedAddresses();
-//   await seedGarbageTypes();
+  // await seedAddresses();
+  // await seedGarbageTypes();
   // await seedCollectionSchedules();
-  // await seedManuals(); // Manuals のデータ挿入を追加
+  await seedManuals(); // Manuals のデータ挿入を追加
 }
 
 /**

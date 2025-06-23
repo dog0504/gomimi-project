@@ -30,9 +30,9 @@ export class Address {
   @Column({ type: 'varchar', name: 'INF', length: 256, nullable: true })
   inf!: string; // 追加情報
 
-  @OneToMany(() => User, (user) => user.addresses)
-  user!: User[]; // 多対1の関係に変更
+  @OneToMany(() => User, (user) => user.address)
+  user!: User[]; // ユーザーとの関係
 
-  @OneToMany(() => CollectionSchedule, (schedule) => schedule.address)
+  @OneToMany(() => CollectionSchedule, (schedule) => schedule.addressId)
   schedules!: CollectionSchedule[]; // スケジュールとの関係
 }

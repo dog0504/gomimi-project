@@ -4,11 +4,11 @@ import { CollectionSchedule } from './CollectionSchedule';
 @Entity('GARBAGE_TYPE')
 export class GarbageType {
   @PrimaryColumn({ type: 'int', name: 'GARBAGE_TYPE_ID' })
-  garbageTypeId!: number; // ゴミの種類ID
+  id!: number; // ゴミの種類ID
 
   @Column({ type: 'varchar', name: 'GARBAGE_TYPE_NAME', length: 50, nullable: false })
-  garbageTypeName!: string; // ゴミの種類名
+  type!: string; // ゴミの種類名
 
-  @OneToMany(() => CollectionSchedule, (schedule) => schedule.garbageType)
+  @OneToMany(() => CollectionSchedule, (schedule) => schedule.garbageTypeId)
   schedules!: CollectionSchedule[]; // スケジュールとの関係
 }

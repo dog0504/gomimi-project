@@ -16,6 +16,6 @@ export const AppDataSource = new DataSource({
   password: 'root',
   database: 'gomimi',
   entities: [User, History, Tification, Address, Manuals, GarbageType, CollectionSchedule],
-  synchronize: true, // ←これでテーブル自動作成
+  synchronize: false, // ←これでテーブル自動作成
   logging: true,
 });

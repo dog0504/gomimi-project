@@ -17,13 +17,13 @@ import { Address } from './Address';
 @Entity('USERS')
 export class User {
   @PrimaryGeneratedColumn({ type: 'int', name: 'USER_NO' })
-  userNo!: number; // ユーザー番号 
+  id!: number; // ユーザー番号 
 
   @Column({ type: 'char', name: 'G_ACCOUNT', length: 30, nullable: true })
   gAccount!: string; // Googleアカウント 
 
   @Column({ type: 'varchar', name: 'PASS', length: 256, nullable: false })
-  pass!: string; // パスワード 
+  password!: string; // パスワード 
 
   @Column({
     type: 'varchar',
@@ -32,17 +32,18 @@ export class User {
     nullable: false,
     unique: true,
   })
-  mail!: string; // メールアドレス 
+  email!: string; // メールアドレス
+  
+  @ManyToOne(() => Address, (address) => address.addressId)
+  @JoinColumn({ name: 'ADDRESS_ID' })
+  address!: Address; // 多対1の関係に対応するプロパティを追加
 
   @Column({ type: 'varchar', name: 'LNG', length: 10, nullable: false })
-  lng!: string; // 指定言語 
+  language!: string; // 指定言語 
 
-  @OneToMany(() => History, (history) => history.user)
+  @OneToMany(() => History, (history) => history.userId)
   histories!: History[];
 
-  @OneToOne(() => Tification, (tification) => tification.user)
-  tification!: Tification;
-
-  @ManyToOne(() => Address, (address) => address.user)
-  addresses!: Address; // 多対1の関係に対応するプロパティを追加
+  @OneToMany(() => Tification, (tification) => tification.userId)
+  tification!: Tification[];
 }

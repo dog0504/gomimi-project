@@ -16,7 +16,7 @@ info:
     ```
 
 servers:
-  - url: https://{APIのサーバーIP}/api/v1
+  - url: https://api.sitapp.org/api/v1
     description: ゴミミのAPIサーバー
     variables:
       APIのサーバーIP:

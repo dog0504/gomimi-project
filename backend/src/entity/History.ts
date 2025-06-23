@@ -3,9 +3,10 @@
 import {
   Entity,
   Column,
-  ManyToOne,
+  OneToOne,
   JoinColumn,
   PrimaryGeneratedColumn,
+  ManyToOne,
 } from 'typeorm';
 import { User } from './User';
 
@@ -13,21 +14,18 @@ import { User } from './User';
 export class History {
   // 1. 新しい主キーとして「履歴番号」を追加
   @PrimaryGeneratedColumn({ type: 'int', name: 'HISTORY_NO' })
-  historyNo!: number;
+  id!: number;
 
-  // 2. 主キーから通常カラムに変更（外部キーとしての役割は維持）
-  @Column({ type: 'int', name: 'USER_NO', nullable: false })
-  userNo!: number;
+  // 2. 外部キー
+  @ManyToOne(() => User, (user) => user.id , { nullable: false, onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'USER_NO' })
+  userId!: number;
 
   // 3. 主キーから通常カラムに変更
   @Column({ type: 'date', name: 'J_DATE', nullable: false })
-  jDate!: Date; // 判別した日付時間
+  Date!: Date; // 判別した日付時間
 
   @Column({ type: 'varchar', name: 'J_TYPE', length: 10, nullable: false })
-  jType!: string; // 判別したごみの種類
+  type!: string; // 判別したごみの種類
 
-  // 4. Userエンティティとのリレーションはそのまま維持
-  @ManyToOne(() => User, (user) => user.histories)
-  @JoinColumn({ name: 'USER_NO' })
-  user!: User;
 }
