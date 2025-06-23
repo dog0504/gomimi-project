@@ -6,6 +6,9 @@ import {
   Column,
   OneToMany,
   OneToOne,
+  JoinColumn,
+  ManyToMany,
+  ManyToOne,
 } from 'typeorm';
 import { History } from './History';
 import { Tification } from './Tification';
@@ -31,9 +34,6 @@ export class User {
   })
   mail!: string; // メールアドレス 
 
-  @Column({ type: 'char', name: 'POST_NO', length: 7, nullable: false })
-  postNo!: string; // 郵便番号 
-
   @Column({ type: 'varchar', name: 'LNG', length: 10, nullable: false })
   lng!: string; // 指定言語 
 
@@ -43,6 +43,6 @@ export class User {
   @OneToOne(() => Tification, (tification) => tification.user)
   tification!: Tification;
 
-  @OneToOne(() => Address, (address) => address.user)
-  address!: Address;
+  @ManyToOne(() => Address, (address) => address.user)
+  addresses!: Address; // 多対1の関係に対応するプロパティを追加
 }
