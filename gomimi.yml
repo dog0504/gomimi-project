@@ -53,26 +53,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - email
-                - password
-                - languageId
-                - postal-code
-              properties:
-                email:
-                  type: string
-                  format: email
-                  example: "taro@example.com"
-                password:
-                  type: string
-                  format: password
-                  example: "password123"
-                languageId:
-                  type: integer
-                  example: 1
-                address:
-                  $ref: '#/components/schemas/AddressInput'
+              $ref: '#/components/schemas/RegisterRequestBody'
       responses:
         '201':
           description: User successfully registered.
@@ -96,19 +77,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - email
-                - password
-              properties:
-                email:
-                  type: string
-                  format: email
-                  example: "taro@example.com"
-                password:
-                  type: string
-                  format: password
-                  example: "password123"
+              $ref: '#/components/schemas/LoginRequestBody'
       responses:
         '200':
           description: Successful login.
@@ -132,7 +101,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
+                $ref: '#/components/schemas/UserResponseBody'
         '401':
           description: Unauthorized.
     put:
@@ -142,27 +111,20 @@ paths:
       security:
         - bearerAuth: []
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                email:
-                  type: string
-                  format: email
-                  example: "taro@example.com"
-                languageId:
-                  type: integer
-                  example: 1
-                address:
-                  $ref: '#/components/schemas/AddressInput'
+              $ref: '#/components/schemas/UpdateRequestBody'
+            
+              
       responses:
         '200':
           description: Profile updated successfully.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
+                $ref: '#/components/schemas/UserResponseBody'
         '401':
           description: Unauthorized.
     delete:
@@ -351,9 +313,9 @@ paths:
       parameters:
         - name: manualId
           in: path
-          required: true
           schema:
             type: integer
+          required: true
       responses:
         '200':
           description: Manual details.
@@ -413,7 +375,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Address'
+                $ref: '#/components/schemas/AddressResponseBody'
         '404':
           description: Address not found.
 
@@ -472,22 +434,90 @@ paths:
 
 components:
   schemas:
-    User:
+    RegisterRequestBody:
+      description: ユーザー登録用のリクエストボディ
       type: object
       properties:
-        password:
-          type: string
-          format: password
-          example: "password123"
         email:
           type: string
           format: email
           example: "taro@example.com"
+        password:
+          type: string
+          format: password
+          example: "password123"
+        languageId:
+          type: integer
+          example: 1
+        addressId:
+          type: integer
+          example: 1
+      required:
+        - email
+        - password
+        - languageId
+        - addressId
+
+    LoginRequestBody:
+      description: ユーザーログイン用のリクエストボディ
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          example: "taro@example.com"
+        password:
+          type: string
+          format: password
+          example: "password123"
+      required:
+        - email
+        - password
+
+    UpdateRequestBody:
+      description: ユーザープロフィール更新用のリクエストボディ
+      type: object
+      properties:
+        email:
+          type: string
+          nullable: true
+          format: email
+          example: "taro@example.com"
+        languageId:
+          type: integer
+          nullable: true
+          example: 1
+        addressId:
+          type: integer
+          nullable: true
+          example: 1
+        
+
+    UserResponseBody:
+      description: ユーザーのプロフィール情報
+      type: object
+      properties:
+        password:
+          type: string
+          nullable: false
+          format: password
+          example: "password123"
+        email:
+          type: string
+          nullable: false
+          format: email
+          example: "taro@example.com"
         address:
-          $ref: '#/components/schemas/Address'
+          $ref: '#/components/schemas/AddressResponseBody'
         language:
           $ref: '#/components/schemas/Language'
-    Address:
+      required:
+        - email
+        - password
+        - address
+        - language
+    
+    AddressResponseBody:
       type: object
       properties:
         id:
@@ -495,32 +525,38 @@ components:
           example: 1
         postal-code:
           type: string
+          nullable: false
           format: postal-code
           example: "5300033"
         city:
           type: string
+          nullable: false
           example: "大阪市"
         ward:
           type: string
+          nullable: false
           example: "北区"
         town:
           type: string
+          nullable: true
           example: "池田町"
         chom:
           type: string 
+          nullable: true
           example: "1番"
         street:
           type: string
-          example: ""
+          nullable: true
+          example: null
         inf:
           type: string
+          nullable: true
           example: "ローレルハイツ北天満"
-    AddressInput:
-      type: object
-      properties:
-        id:
-          type: integer
-          example: 1
+      required:
+        - postal-code
+        - city  
+        - ward
+        - town
     
     Language:
       type: object
@@ -540,35 +576,53 @@ components:
       properties:
         id:
           type: integer
+          nullable: false
           example: 1
         type:
           type: string
+          nullable: false
           description: "例: '普通ごみ', '資源ごみ'"
           example: "普通ごみ"
         dayOfWeek:
           type: string
+          nullable: false
           description: "例: '月曜日', '火曜日'"
           example: "月曜日"
         time:
           type: string
-          nullable: true
+          nullable: false
           description: "例: '8:30~10:30'"
           example: "8:30~10:30"
+      required:
+        - id
+        - type
+        - dayOfWeek
+        - time
+    
     Manual:
       type: object
       properties:
         id:
           type: integer
+          nullable: false
           example: 101
         name:
           type: string
+          nullable: false
           example: "ペットボトル"
         category:
           type: string
+          nullable: false
           example: "資源ごみ"
         remarks:
           type: string
+          nullable: true
           example: "キャップ・ラベルをはずして、中を軽くすすいで、横につぶして出して下さい。"
+      required:
+        - id
+        - name
+        - category
+        
     History:
       type: object
       properties:
