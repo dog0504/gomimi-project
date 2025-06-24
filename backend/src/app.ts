@@ -1,19 +1,19 @@
 console.log("Hello TypeScript + TypeORM!");
-import http from 'http'; // ← { get } を削除
+import http from 'http';
 import "reflect-metadata";
 import express from "express";
-import cors from "cors"; // 追加
-import { DataSource } from "typeorm";
+import cors from "cors";
+import multer from 'multer';
+import jwt from 'jsonwebtoken';
+
 import { initDataSource, seedDatabase } from "./initDataSource";
 import { User } from './entity/User';
-// import { createUser, UserCreationRequest } from './services/userService'; // 作成したサービスをインポート
-import jwt from 'jsonwebtoken';
-import {
-    authenticateUser,
-    UserLoginRequest,
-    getUserProfileById
-} from './services/userService';
+import * as UserService from './services/userService';
+import * as ScheduleService from './services/scheduleService';
 import { protect } from './middleware/authMiddleware';
+
+// アップロードされたファイルをメモリ上に一時保存する設定
+const upload = multer({ storage: multer.memoryStorage() });
 
 // expressアプリケーションのインスタンスを作成
 const app = express();
@@ -51,51 +51,51 @@ app.get('/', (req, res) => {
  * @apiName RegisterUser
  * @apiGroup Auth
  */
-// app.post('/auth/register', async (req, res) => {
-//     console.log('Received registration request:', req.body); // 追加: 受信ボディをログ出力
+app.post('/auth/register', async (req, res) => {
+    console.log('Received registration request:', req.body); // 追加: 受信ボディをログ出力
 
-//     if (!req.body) {
-//         res.status(400).json({ message: 'Request body is missing or invalid JSON.' });
-//     }
+    if (!req.body) {
+        res.status(400).json({ message: 'Request body is missing or invalid JSON.' });
+    }
 
-//     const userData: UserCreationRequest = req.body;
+    const userData: UserService.UserCreationRequest = req.body; // 変更: UserServiceから参照
 
-//     // 簡単な入力値検証
-//     if (!userData.email || !userData.password || !userData.language || !userData.address?.id) {
-//         res.status(400).json({ message: 'Invalid input.' });
-//     }
+    // 簡単な入力値検証
+    if (!userData.email || !userData.password || !userData.languageId || !userData.addressId) {
+        res.status(400).json({ message: 'Invalid input.' });
+    }
 
-//     try {
-//         // ユーザー作成サービスを呼び出す
-//         const newUser = await createUser(userData);
+    try {
+        // ユーザー作成サービスを呼び出す
+        const newUser = await UserService.createUser(userData); // 変更: UserServiceから参照
 
-//         // ユーザー登録成功後、JWTを生成
-//         const accessToken = jwt.sign(
-//         { userId: newUser.id, email: newUser.email },
-//         JWT_SECRET,
-//         { expiresIn: '1h' } // トークンの有効期限 (例: 1時間)
-//         );
+        // ユーザー登録成功後、JWTを生成
+        const accessToken = jwt.sign(
+        { userId: newUser.id, email: newUser.email },
+        JWT_SECRET,
+        { expiresIn: '1h' } // トークンの有効期限 (例: 1時間)
+        );
 
-//         // API仕様書通り、アクセストークンを返す
-//         res.status(201).json({ accessToken });
+        // API仕様書通り、アクセストークンを返す
+        res.status(201).json({ accessToken });
 
-//     } catch (error) {
-//         if (error instanceof Error) {
-//         // サービスで設定したエラー名でハンドリングを分岐
-//         if (error.name === 'ConflictError') {
-//             console.error('User registration failed:', error);
-//             res.status(409).json({ message: error.message }); // 409 Conflict
-//         }
-//         if (error.name === 'BadRequestError') {
-//             console.error('User registration failed:', error);
-//             res.status(400).json({ message: error.message }); // 400 Bad Request
-//         }
-//         }
-//         // その他の予期せぬエラー
-//         console.error('Registration failed:', error);
-//         res.status(500).json({ message: 'Internal Server Error' });
-//     }
-// });
+    } catch (error) {
+        if (error instanceof Error) {
+        // サービスで設定したエラー名でハンドリングを分岐
+        if (error.name === 'ConflictError') {
+            console.error('User registration failed:', error);
+            res.status(409).json({ message: error.message }); // 409 Conflict
+        }
+        if (error.name === 'BadRequestError') {
+            console.error('User registration failed:', error);
+            res.status(400).json({ message: error.message }); // 400 Bad Request
+        }
+        }
+        // その他の予期せぬエラー
+        console.error('Registration failed:', error);
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+});
 
 /**
  * @api {post} /auth/login ユーザーログイン
@@ -104,7 +104,7 @@ app.get('/', (req, res) => {
  */
 app.post('/auth/login', async (req, res) => {
     console.log('Received login request:', req.body); // 追加: 受信ボディをログ出力
-    const credentials: UserLoginRequest = req.body;
+    const credentials: UserService.UserLoginRequest = req.body;
 
     // 入力値検証
     if (!credentials.email || !credentials.password) {
@@ -114,7 +114,7 @@ app.post('/auth/login', async (req, res) => {
 
     try {
         // 認証サービスを呼び出す
-        const user = await authenticateUser(credentials);
+        const user = await UserService.authenticateUser(credentials);
 
         // 認証に成功したら、新しいJWTを生成
         const accessToken = jwt.sign(
@@ -159,20 +159,167 @@ app.get('/users/me', protect, async (req, res) => {
             res.status(401).json({ message: 'Unauthorized.' });
         }
 
-        const userProfile = await getUserProfileById(userId);
+        const userProfile = await UserService.getUserProfileById(userId);
 
         if (!userProfile) {
             res.status(404).json({ message: 'User not found.' });
         }
 
         // APIのレスポンスにパスワードを含めないように、除外する
-        const { password, ...responseObject } = userProfile as User;
-        console.log('User profile retrieved successfully:', responseObject);
+        // DBの'languageId'プロパティを、API仕様の'language'プロパティにマッピングする
+        const { password, gAccount, ...restOfUser } = userProfile as User;
+        const responseObject = {
+            ...restOfUser,
+        };
         res.status(200).json(responseObject);
         
     } catch (error) {
         console.error('Failed to get user profile:', error);
         res.status(500).json({ message: 'Internal Server Error' });
+    }
+});
+
+/**
+ * @api {put} /users/me 現在のユーザーのプロフィールを更新
+ * @apiName UpdateMyProfile
+ * @apiGroup Users
+ * @apiHeader {String} Authorization Bearerトークン
+ * @apiBody {String} [email] 新しいメールアドレス
+ * @apiBody {String} [language] 新しい言語
+ * @apiBody {Object} [address] 新しい住所
+ * @apiBody {Number} address.id 新しい住所のID
+ */
+app.put('/users/me', protect, async (req, res) => {
+    const userId = req.user!.userId;
+    const updateData: UserService.UserUpdateRequest = req.body;
+
+    if (!userId) {
+        // ミドルウェアで弾かれるはずだが念のため
+        res.status(401).json({ message: 'Unauthorized.' });
+    }
+
+    // リクエストボディが空の場合はエラー
+    if (Object.keys(updateData).length === 0) {
+        res.status(400).json({ message: 'No update data provided.' });
+    }
+
+    try {
+        const updatedUser = await UserService.updateUserProfile(userId, updateData);
+
+        if (!updatedUser) {
+            // サービス内でエラーがスローされるため、通常ここには来ない
+            res.status(404).json({ message: 'User not found after update.' });
+        }
+
+        // レスポンスからパスワードを除外
+        const { password, gAccount, ...restOfUser } = updatedUser as User;
+        const responseObject = {
+            ...restOfUser,
+        };
+        res.status(200).json(responseObject);
+
+    } catch (error) {
+        if (error instanceof Error) {
+            if (error.name === 'NotFoundError') {
+                res.status(404).json({ message: error.message });
+            }
+            if (error.name === 'ConflictError') {
+                res.status(409).json({ message: error.message }); // 既に存在する
+            }
+            if (error.name === 'BadRequestError') {
+                res.status(400).json({ message: error.message }); // 不正なリクエスト
+            }
+        }
+        console.error('Failed to update user profile:', error);
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+});
+
+/**
+ * @api {delete} /users/me 現在のユーザーのアカウントを削除
+ * @apiName DeleteMyAccount
+ * @apiGroup Users
+ * @apiHeader {String} Authorization Bearerトークン
+ */
+app.delete('/users/me', protect, async (req, res) => {
+    const userId = req.user?.userId;
+
+    if (userId) {
+        try {
+        const wasDeleted = await UserService.deleteUser(userId);
+        if (wasDeleted) {
+            // API仕様書に従い、成功時はボディなしの204を返す
+            res.status(204).send();
+        } else {
+            // サービスがfalseを返した場合（＝ユーザーが見つからなかった）
+            res.status(404).json({ message: 'User not found.' });
+        }
+        } catch (error) {
+        console.error('Failed to delete user:', error);
+        res.status(500).json({ message: 'Internal Server Error' });
+        }
+    } else {
+        // このケースは通常ミドルウェアで弾かれるが、念のため記述
+        res.status(401).json({ message: 'Unauthorized.' });
+    }
+});
+
+// ===================================
+//   Garbage エンドポイント
+// ===================================
+
+/**
+ * @api {post} /garbage/identify 画像からゴミを識別 (未実装)
+ * @apiName IdentifyGarbage
+ * @apiGroup Garbage
+ * @apiHeader {String} Authorization Bearerトークン
+ */
+app.post('/garbage/identify', protect, upload.single('image'), async (req, res) => {
+    // protectミドルウェアで認証をチェック
+    // upload.single('image') で'image'という名前のファイルを受け付ける
+    // 処理の中身は未実装であることを示すレスポンスを返す
+    res.status(501).json({ message: 'この機能はまだ実装されていません。' });
+});
+
+/**
+ * @api {get} /garbage/search 名前でゴミを検索 (未実装)
+ * @apiName SearchGarbage
+ * @apiGroup Garbage
+ * @apiHeader {String} Authorization Bearerトークン
+ */
+app.get('/garbage/search', protect, async (req, res) => {
+    // クエリパラメータ'keyword'の有無をチェック
+    const keyword = req.query.keyword;
+
+    if (keyword) {
+        // keywordがあっても、処理の中身は未実装であることを示すレスポンスを返す
+        res.status(501).json({ message: 'この機能はまだ実装されていません。' });
+    } else {
+        // API仕様書ではkeywordは必須なので、ない場合は400エラーを返す
+        res.status(400).json({ message: 'クエリパラメータ "keyword" は必須です。' });
+    }
+});
+
+/**
+ * @api {get} /users/me/bin-days ユーザーのゴミ収集日を取得
+ * @apiName GetUserBinDays
+ * @apiGroup BinDays
+ * @apiHeader {String} Authorization Bearerトークン
+ */
+app.get('/users/me/bin-days', protect, async (req, res) => {
+    const userId = req.user?.userId;
+
+    if (userId) {
+        try {
+            const binDays = await ScheduleService.getBinDaysForUser(userId);
+            res.status(200).json(binDays);
+        } catch (error) {
+            console.error('Failed to get bin days:', error);
+            res.status(500).json({ message: 'Internal Server Error' });
+        }
+    } else {
+        // このケースは通常ミドルウェアで弾かれる
+        res.status(401).json({ message: 'Unauthorized.' });
     }
 });
 
