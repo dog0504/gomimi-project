@@ -7,6 +7,7 @@ import { Manuals } from './entity/Manual';
 import { BinDay } from './entity/BinDay';
 import { GarbageType } from './entity/GarbageType';
 import { CollectionSchedule } from './entity/CollectionSchedule';
+import { Language } from './entity/Language';
 
 export const AppDataSource = new DataSource({
   type: 'mysql',
@@ -15,7 +16,7 @@ export const AppDataSource = new DataSource({
   username: 'root',
   password: 'root',
   database: 'gomimi',
-  entities: [User, History, Tification, Address, Manuals, GarbageType, CollectionSchedule],
+  entities: [User, History, Tification, Address, Manuals, GarbageType, CollectionSchedule, Language],
   synchronize: false, // ←これでテーブル自動作成
   logging: true,
 });

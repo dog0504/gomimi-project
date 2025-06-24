@@ -36,6 +36,8 @@ tags:
     description: ユーザーの履歴
   - name: Addresses
     description: 住所操作
+  - name: Languages
+    description: 言語設定
   - name: Notifications
     description: 通知設定(検討中)
 
@@ -55,7 +57,7 @@ paths:
               required:
                 - email
                 - password
-                - language
+                - languageId
                 - postal-code
               properties:
                 email:
@@ -66,10 +68,9 @@ paths:
                   type: string
                   format: password
                   example: "password123"
-                language:
-                  type: string
-                  format: language
-                  example: "ja"
+                languageId:
+                  type: integer
+                  example: 1
                 address:
                   $ref: '#/components/schemas/AddressInput'
       responses:
@@ -150,6 +151,9 @@ paths:
                   type: string
                   format: email
                   example: "taro@example.com"
+                languageId:
+                  type: integer
+                  example: 1
                 address:
                   $ref: '#/components/schemas/AddressInput'
       responses:
@@ -413,6 +417,21 @@ paths:
         '404':
           description: Address not found.
 
+  /Languages:
+    get:
+      tags:
+        - Languages
+      summary: 利用可能な言語のリストを取得(配列)
+      responses:
+        '200':
+          description: A list of languages.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Language'
+
   /users/me/notifications:
     get:
       tags:
@@ -467,9 +486,7 @@ components:
         address:
           $ref: '#/components/schemas/Address'
         language:
-          type: string
-          format: language
-          example: "ja"
+          $ref: '#/components/schemas/Language'
     Address:
       type: object
       properties:
@@ -504,6 +521,19 @@ components:
         id:
           type: integer
           example: 1
+    
+    Language:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "Japanese"
+        code:
+          type: string
+          example: "ja"
         
     BinDay:
       type: object

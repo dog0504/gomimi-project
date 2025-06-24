@@ -227,7 +227,7 @@ export async function seedDatabase(): Promise<void> {
   // await seedAddresses();
   // await seedGarbageTypes();
   // await seedCollectionSchedules();
-  await seedManuals(); // Manuals のデータ挿入を追加
+  // await seedManuals(); // Manuals のデータ挿入を追加
 }
 
 /**
