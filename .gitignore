@@ -13,3 +13,7 @@ backend/csv/collection_schedules.csv
 backend/csv/garbage_types.csv
 backend/csv/osaka-cyty.csv
 *.sql
+sql/MANUALS.sql.zip
+sql/GARBAGE_TYPE.sql.zip
+sql/COLLECTION_SCHEDULE.sql.zip
+sql/ADDRESS.sql.zip
