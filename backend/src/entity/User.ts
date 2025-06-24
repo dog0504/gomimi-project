@@ -41,7 +41,7 @@ export class User {
 
   @ManyToOne(() => Language, (language) => language.id, { nullable: false })
   @JoinColumn({ name: 'LANGUAGE_ID' })
-  languageId!: Language; // 多対1の関係に対応するプロパティを追加
+  language!: Language; // 多対1の関係に対応するプロパティを追加
 
   @OneToMany(() => History, (history) => history.userId)
   histories!: History[];

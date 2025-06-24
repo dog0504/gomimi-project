@@ -6,6 +6,8 @@ import { Address } from './entity/Address';
 import { GarbageType } from './entity/GarbageType';
 import { CollectionSchedule } from './entity/CollectionSchedule';
 import { Manuals } from './entity/Manual';
+import { Language, LANGUAGE_SEED_DATA } from './entity/Language'; // Languageとシードデータをインポート
+import { DataSource } from 'typeorm';
 
 const CSV_DIR = path.join(__dirname, '../csv');
 
@@ -152,8 +154,8 @@ async function seedCollectionSchedules(): Promise<void> {
               continue;
             }
             const schedule = new CollectionSchedule();
-            schedule.addressId = address; // リレーションを設定
-            schedule.garbageTypeId = garbageType; // リレーションを設定
+            schedule.address = address; // リレーションを設定
+            schedule.garbageType = garbageType; // リレーションを設定
             schedule.collectionDay = data.collection_day;
             schedule.collectionTime = data.collection_time;
             await scheduleRepository.save(schedule);
@@ -221,6 +223,25 @@ async function seedManuals(): Promise<void> {
 }
 
 /**
+ * アプリケーション起動時に言語データをデータベースに投入する
+ * @param dataSource
+ */
+async function seedLanguages(): Promise<void>{
+  const languageRepository = AppDataSource.getRepository(Language);
+
+  for (const data of LANGUAGE_SEED_DATA) {
+    // 既に同じ言語コードのデータが存在しないか確認
+    const existing = await languageRepository.findOneBy({ code: data.code });
+    if (!existing) {
+      // 存在しなければ、新しいデータを作成して保存
+      const language = languageRepository.create(data);
+      await languageRepository.save(language);
+      console.log(`Seeded language: ${data.name}`);
+    }
+  }
+};
+
+/**
  * データベースにCSVデータを挿入する
  */
 export async function seedDatabase(): Promise<void> {
@@ -228,6 +249,7 @@ export async function seedDatabase(): Promise<void> {
   // await seedGarbageTypes();
   // await seedCollectionSchedules();
   // await seedManuals(); // Manuals のデータ挿入を追加
+  await seedLanguages(); // 言語データのシードを追加
 }
 
 /**

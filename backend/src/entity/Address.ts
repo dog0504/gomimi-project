@@ -33,6 +33,6 @@ export class Address {
   @OneToMany(() => User, (user) => user.address)
   user!: User[]; // ユーザーとの関係
 
-  @OneToMany(() => CollectionSchedule, (schedule) => schedule.addressId)
+  @OneToMany(() => CollectionSchedule, (schedule) => schedule.address)
   schedules!: CollectionSchedule[]; // スケジュールとの関係
 }

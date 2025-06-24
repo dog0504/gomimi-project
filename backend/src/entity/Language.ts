@@ -17,7 +17,7 @@ export class Language {
     @Column({ length: 32 })
     name!: string; // 例: '日本語', 'English'
 
-    @OneToMany(() => User, (user) => user.languageId)
+    @OneToMany(() => User, (user) => user.language)
     users!: User[]; // Userエンティティとの1対多の関係を定義
 }
 

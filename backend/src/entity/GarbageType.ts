@@ -9,6 +9,6 @@ export class GarbageType {
   @Column({ type: 'varchar', name: 'GARBAGE_TYPE_NAME', length: 50, nullable: false })
   type!: string; // ゴミの種類名
 
-  @OneToMany(() => CollectionSchedule, (schedule) => schedule.garbageTypeId)
+  @OneToMany(() => CollectionSchedule, (schedule) => schedule.garbageType)
   schedules!: CollectionSchedule[]; // スケジュールとの関係
 }
