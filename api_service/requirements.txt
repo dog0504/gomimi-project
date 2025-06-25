@@ -1,5 +1,0 @@
-# 使用するモデルやライブラリをここに記述
-fastapi
-uvicorn[standard]
-pymongo
-requests

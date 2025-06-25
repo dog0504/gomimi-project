@@ -4,3 +4,16 @@ csv/garbage_list.csv
 csv/mysql_data.csv
 ai_service/__pycache__/app.cpython-313.pyc
 api_service/__pycache__/app.cpython-313.pyc
+node_modules/
+.DS_Store
+backend/csv/mysql_data.csv
+backend/csv/garbage_list.csv
+backend/csv/addresses_with_zipcode_v2.csv
+backend/csv/collection_schedules.csv
+backend/csv/garbage_types.csv
+backend/csv/osaka-cyty.csv
+*.sql
+sql/MANUALS.sql.zip
+sql/GARBAGE_TYPE.sql.zip
+sql/COLLECTION_SCHEDULE.sql.zip
+sql/ADDRESS.sql.zip

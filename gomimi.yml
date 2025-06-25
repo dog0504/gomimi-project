@@ -1,0 +1,711 @@
+openapi: '3.0.3'
+info:
+  title: ゴミミのAPI
+  version: '1.0'
+  description: |
+    このAPIはゴミ分別や収集日管理をサポートするためのものです。
+    認証にはJWTトークンを使用します。以下の手順で認証を行ってください。
+
+    1. `/auth/login` エンドポイントを使用して、メールアドレスとパスワードを送信し、JWTトークンを取得します。
+    2. 取得したトークンをリクエストヘッダーの `Authorization` フィールドに `Bearer <トークン>` の形式で設定します。
+    3. 認証が必要なエンドポイントにアクセスします。
+
+    例:
+    ```
+    Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+    ```
+
+servers:
+  - url: https://{アドレス}/api/v1
+    description: ゴミミのAPIサーバー
+  - url: http://localhost:8000/api/v1
+    description: ローカル開発サーバー
+
+tags:
+  - name: Auth
+    description: 認証操作
+  - name: Users
+    description: ユーザー関連の操作
+  - name: Garbage
+    description: ゴミの識別と検索
+  - name: BinDays
+    description: ゴミ収集日の取得
+  - name: Manuals
+    description: ゴミ分別マニュアル
+  - name: Histories
+    description: ユーザーの識別履歴
+  - name: Addresses
+    description: 住所操作
+  - name: Languages
+    description: 言語設定
+  - name: Notifications
+    description: 通知設定(検討中)
+
+paths:
+  /auth/register:
+    post:
+      tags:
+        - Auth
+      summary: 新しいユーザーを登録
+      description: 新しいユーザーを作成し、JWTトークンを返します。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequestBody'
+      responses:
+        '201':
+          description: User successfully registered.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Invalid input.
+        '409':
+          description: Already exists.
+
+  /auth/login:
+    post:
+      tags:
+        - Auth
+      summary: ユーザーログイン
+      description: ユーザーを認証し、JWTトークンを返します。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequestBody'
+      responses:
+        '200':
+          description: Successful login.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Unauthorized.
+
+  /users/me:
+    get:
+      tags:
+        - Users
+      summary: 現在のユーザーのプロフィールを取得
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponseBody'
+        '401':
+          description: Unauthorized.
+    put:
+      tags:
+        - Users
+      summary: 現在のユーザーのプロフィールを更新
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRequestBody'
+            
+              
+      responses:
+        '200':
+          description: Profile updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponseBody'
+        '401':
+          description: Unauthorized.
+    delete:
+      tags:
+        - Users
+      summary: 現在のユーザーのアカウントを削除
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: User deleted successfully.
+        '401':
+          description: Unauthorized.
+
+  /garbage/identify:
+    post:
+      tags:
+        - Garbage
+      summary: 画像からゴミを識別
+      description: 画像をアップロードしてゴミの種類を識別します。AIサービスと連携する可能性があります。
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                image:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Identification result.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: string
+                    example: "ペットボトル"
+                  category:
+                    type: string
+                    example: "資源ごみ"
+                  description:
+                    type: string
+                    example: "キャップとラベルを外し、中をすすいでから捨ててください。"
+        '400':
+          description: No image provided.
+        '401':
+          description: Unauthorized.
+
+  /garbage/search:
+    get:
+      tags:
+        - Garbage
+      summary: 名前でゴミを検索(検討中)(配列)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: keyword
+          in: query
+          required: true
+          schema:
+            type: string
+          description: The name of the garbage item to search for.
+      responses:
+        '200':
+          description: Search results.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Manual'
+        '401':
+          description: Unauthorized.
+
+  /users/me/bin-days:
+    get:
+      tags:
+        - BinDays
+      summary: ユーザーのゴミ収集日を取得(配列)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: A list of garbage collection days.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BinDay'
+        '401':
+          description: Unauthorized.
+
+  /manuals:
+    get:
+      tags:
+        - Manuals
+      summary: すべてのゴミ名とIDを取得(配列)
+      responses:
+        '200':
+          description: A list of manuals.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                      example: 101
+                    name:
+                      type: string
+                      example: "ペットボトル"
+
+  /manuals/search:
+    get:
+      tags:
+        - Manuals
+      summary: 名前でゴミマニュアルを検索(配列)
+      parameters:
+        - name: keyword
+          in: query
+          required: true
+          schema:
+            type: string
+          description: The name of the garbage manual to search for.
+      responses:
+        '200':
+          description: Search results.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                      example: 101
+                    name:
+                      type: string
+                      example: "ペットボトル"
+  
+  /manuals/search/initials:
+    get:
+      tags:
+        - Manuals
+      summary: 頭文字からマニュアルを検索(配列)
+      parameters:
+        - name: initial
+          in: query
+          required: true
+          schema:
+            type: string
+            maxLength: 1
+          description: The initial character to filter garbage manuals.
+      responses:
+        '200':
+          description: Search results by initial.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                      example: 101
+                    name:
+                      type: string
+                      example: "ペットボトル"
+
+  /manuals/{manualId}:
+    get:
+      tags:
+        - Manuals
+      summary: IDで特定のゴミマニュアルを取得
+      parameters:
+        - name: manualId
+          in: path
+          schema:
+            type: integer
+          required: true
+      responses:
+        '200':
+          description: Manual details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Manual'
+        '404':
+          description: Manual not found.
+
+  /users/me/histories:
+    get:
+      tags:
+        - Histories
+      summary: ユーザーの識別履歴を取得(配列)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: A list of search history records.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/History'
+        '401':
+          description: Unauthorized.
+    post:
+      tags:
+        - Histories
+      summary: ユーザーの識別履歴を追加
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "スプレー缶"
+                type:
+                  type: string
+                  example: "資源ごみ"
+      responses:
+        '201':
+          description: History record created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/History'
+        '401':
+          description: Unauthorized.
+
+  /addresses/search:
+    get:
+      tags:
+        - Addresses
+      summary: 郵便番号から住所を検索(配列)
+      parameters:
+        - name: postalCode
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "5300001"
+          description: The postal code to search for.
+      responses:
+        '200':
+          description: Address details.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AddressResponseBody'
+        '404':
+          description: Address not found.
+
+  /Languages:
+    get:
+      tags:
+        - Languages
+      summary: 利用可能な言語のリストを取得(配列)
+      responses:
+        '200':
+          description: A list of languages.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Language'
+
+  /users/me/notifications:
+    get:
+      tags:
+        - Notifications
+      summary: ユーザーの通知設定を取得
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Notification settings.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+        '401':
+          description: Unauthorized.
+    put:
+      tags:
+        - Notifications
+      summary: ユーザーの通知設定を更新
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationInput'
+      responses:
+        '200':
+          description: Settings updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+        '401':
+          description: Unauthorized.
+
+components:
+  schemas:
+    RegisterRequestBody:
+      description: ユーザー登録用のリクエストボディ
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          example: "taro@example.com"
+        password:
+          type: string
+          format: password
+          example: "password123"
+        languageId:
+          type: integer
+          example: 1
+        addressId:
+          type: integer
+          example: 1
+      required:
+        - email
+        - password
+        - languageId
+        - addressId
+
+    LoginRequestBody:
+      description: ユーザーログイン用のリクエストボディ
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          example: "taro@example.com"
+        password:
+          type: string
+          format: password
+          example: "password123"
+      required:
+        - email
+        - password
+
+    UpdateRequestBody:
+      description: ユーザープロフィール更新用のリクエストボディ
+      type: object
+      properties:
+        email:
+          type: string
+          nullable: true
+          format: email
+          example: "taro@example.com"
+        languageId:
+          type: integer
+          nullable: true
+          example: 1
+        addressId:
+          type: integer
+          nullable: true
+          example: 1
+        
+
+    UserResponseBody:
+      description: ユーザーのプロフィール情報
+      type: object
+      properties:
+        password:
+          type: string
+          nullable: false
+          format: password
+          example: "password123"
+        email:
+          type: string
+          nullable: false
+          format: email
+          example: "taro@example.com"
+        address:
+          $ref: '#/components/schemas/AddressResponseBody'
+        language:
+          $ref: '#/components/schemas/Language'
+      required:
+        - email
+        - password
+        - address
+        - language
+    
+    AddressResponseBody:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        postal-code:
+          type: string
+          nullable: false
+          format: postal-code
+          example: "5300033"
+        city:
+          type: string
+          nullable: false
+          example: "大阪市"
+        ward:
+          type: string
+          nullable: false
+          example: "北区"
+        town:
+          type: string
+          nullable: true
+          example: "池田町"
+        chom:
+          type: string 
+          nullable: true
+          example: "1番"
+        street:
+          type: string
+          nullable: true
+          example: null
+        inf:
+          type: string
+          nullable: true
+          example: "ローレルハイツ北天満"
+      required:
+        - postal-code
+        - city  
+        - ward
+        - town
+    
+    Language:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "Japanese"
+        code:
+          type: string
+          example: "ja"
+        
+    BinDay:
+      type: object
+      properties:
+        id:
+          type: integer
+          nullable: false
+          example: 1
+        type:
+          type: string
+          nullable: false
+          description: "例: '普通ごみ', '資源ごみ'"
+          example: "普通ごみ"
+        dayOfWeek:
+          type: string
+          nullable: false
+          description: "例: '月曜日', '火曜日'"
+          example: "月曜日"
+        time:
+          type: string
+          nullable: false
+          description: "例: '8:30~10:30'"
+          example: "8:30~10:30"
+      required:
+        - id
+        - type
+        - dayOfWeek
+        - time
+    
+    Manual:
+      type: object
+      properties:
+        id:
+          type: integer
+          nullable: false
+          example: 101
+        name:
+          type: string
+          nullable: false
+          example: "ペットボトル"
+        category:
+          type: string
+          nullable: false
+          example: "資源ごみ"
+        remarks:
+          type: string
+          nullable: true
+          example: "キャップ・ラベルをはずして、中を軽くすすいで、横につぶして出して下さい。"
+      required:
+        - id
+        - name
+        - category
+        
+    History:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "スプレー缶"
+        type:
+          type: string
+          example: "資源ごみ"
+        createdAt:
+          type: string
+          format: date-time
+
+    Notification:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        type:
+          type: string
+          description: "通知の種類、例: 'リマインダー'"
+          example: "リマインダー"
+        time:
+          type: string
+          format: time
+          example: "20:00:00"
+        enabled:
+          type: boolean
+          example: true
+    NotificationInput:
+      type: object
+      properties:
+        time:
+          type: string
+          format: time
+          example: "21:00:00"
+        enabled:
+          type: boolean
+          example: false
+    AuthResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

@@ -1,21 +1,20 @@
 services:
-  # FastAPI アプリケーションサービス (APIサーバー)
-  api_service:
-    build:
-      context: ./api_service # FastAPIアプリのコードがあるディレクトリ
-      dockerfile: Dockerfile
-    container_name: api_service
-    ports:
-      - "8000:8000" # ホストOSのポート:コンテナのポート
+  backend:
+    image: node:22-alpine
+    working_dir: /app
     volumes:
-      - ./api_service:/usr/src/python # ホストの./api_serviceをコンテナの/usr/src/pythonにマウント
-    depends_on: # 起動順序の制御
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    depends_on:
       - db_service
-      - ai_service  
-    networks: # サービス間通信用のネットワーク
+    command: >
+      sh -c "
+        npm install &&
+        npm run dev
+      "
+    networks:
       - app_network
-    environment:
-      - AI_SERVICE_URL=http://ai_service:5001 # AIサービスのエンドポイント
 
   # Python AIサービス (画像認識など)
   ai_service:
@@ -43,13 +42,13 @@ services:
       - "3306:3306"
     environment:
       MYSQL_ROOT_PASSWORD: root # rootユーザーのパスワード
-      MYSQL_DATABASE: database # デフォルトのデータベース名
-      MYSQL_USER: user
-      MYSQL_PASSWORD: password
-    volumes:
-      - mysql-data:/var/lib/mysql # MySQLのデータ永続化
-      - ./mysql/conf.d:/etc/mysql/conf.d #2025/06/13ホストのディレクトリをコンテナにマウント
-      - ./csv:/mnt/csv # CSVファイルをコンテナ内の/csvにマウント
+      MYSQL_DATABASE: gomimi # デフォルトのデータベース名
+      MYSQL_USER: guest # ゲストユーザー
+      MYSQL_PASSWORD: 3923
+    # volumes:
+    #   - mysql-data:/var/lib/mysql # MySQLのデータ永続化
+      # - ./mysql/conf.d:/etc/mysql/conf.d #2025/06/13ホストのディレクトリをコンテナにマウント
+      # - ./csv:/mnt/csv # CSVファイルをコンテナ内の/csvにマウント
     networks:
       - app_network
 
