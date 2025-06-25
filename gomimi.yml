@@ -33,7 +33,7 @@ tags:
   - name: Manuals
     description: ゴミ分別マニュアル
   - name: Histories
-    description: ユーザーの履歴
+    description: ユーザーの識別履歴
   - name: Addresses
     description: 住所操作
   - name: Languages
@@ -330,7 +330,7 @@ paths:
     get:
       tags:
         - Histories
-      summary: ユーザーの履歴を取得(配列)
+      summary: ユーザーの識別履歴を取得(配列)
       security:
         - bearerAuth: []
       parameters:
@@ -353,6 +353,34 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/History'
+        '401':
+          description: Unauthorized.
+    post:
+      tags:
+        - Histories
+      summary: ユーザーの識別履歴を追加
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "スプレー缶"
+                type:
+                  type: string
+                  example: "資源ごみ"
+      responses:
+        '201':
+          description: History record created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/History'
         '401':
           description: Unauthorized.
 
@@ -629,12 +657,16 @@ components:
         id:
           type: integer
           example: 1
-        query:
+        name:
           type: string
           example: "スプレー缶"
+        type:
+          type: string
+          example: "資源ごみ"
         createdAt:
           type: string
           format: date-time
+
     Notification:
       type: object
       properties:
