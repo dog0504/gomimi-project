@@ -34,15 +34,15 @@ const port = 8000;
 const JWT_SECRET = 'your-super-secret-key-that-is-at-least-32-characters-long';
 
 // // ルーターを作成
-// const apiRouter = express.Router();
+const apiRouter = express.Router();
 
 // // ルーティングの設定
-// app.use('/api', apiRouter);
+app.use('/api/v1', apiRouter);
 
 // 指定したポートでHTTPサーバーを起動し、起動成功時にメッセージを出力
 
 
-app.get('/', (req, res) => {
+apiRouter.get('/', (req, res) => {
     res.send('Hello World!');
 });
 
@@ -51,7 +51,7 @@ app.get('/', (req, res) => {
  * @apiName RegisterUser
  * @apiGroup Auth
  */
-app.post('/auth/register', async (req, res) => {
+apiRouter.post('/auth/register', async (req, res) => {
     console.log('Received registration request:', req.body); // 追加: 受信ボディをログ出力
 
     if (!req.body) {
@@ -102,7 +102,7 @@ app.post('/auth/register', async (req, res) => {
  * @apiName LoginUser
  * @apiGroup Auth
  */
-app.post('/auth/login', async (req, res) => {
+apiRouter.post('/auth/login', async (req, res) => {
     console.log('Received login request:', req.body); // 追加: 受信ボディをログ出力
     const credentials: UserService.UserLoginRequest = req.body;
 
@@ -145,7 +145,7 @@ app.post('/auth/login', async (req, res) => {
  * @apiGroup Users
  * @apiHeader {String} Authorization Bearerトークン (例: Bearer eyJhbGci...)
  */
-app.get('/users/me', protect, async (req, res) => {
+apiRouter.get('/users/me', protect, async (req, res) => {
     //                  ^^^^^^^
     // protectミドルウェアをここに追加。これ以降の処理は認証成功した場合のみ実行される。
     console.log('Received request to get user profile:', req.user); // 追加: リクエストユーザー情報をログ出力
@@ -189,7 +189,7 @@ app.get('/users/me', protect, async (req, res) => {
  * @apiBody {Object} [address] 新しい住所
  * @apiBody {Number} address.id 新しい住所のID
  */
-app.put('/users/me', protect, async (req, res) => {
+apiRouter.put('/users/me', protect, async (req, res) => {
     const userId = req.user!.userId;
     const updateData: UserService.UserUpdateRequest = req.body;
 
@@ -241,7 +241,7 @@ app.put('/users/me', protect, async (req, res) => {
  * @apiGroup Users
  * @apiHeader {String} Authorization Bearerトークン
  */
-app.delete('/users/me', protect, async (req, res) => {
+apiRouter.delete('/users/me', protect, async (req, res) => {
     const userId = req.user?.userId;
 
     if (userId) {
@@ -274,7 +274,7 @@ app.delete('/users/me', protect, async (req, res) => {
  * @apiGroup Garbage
  * @apiHeader {String} Authorization Bearerトークン
  */
-app.post('/garbage/identify', protect, upload.single('image'), async (req, res) => {
+apiRouter.post('/garbage/identify', protect, upload.single('image'), async (req, res) => {
     // protectミドルウェアで認証をチェック
     // upload.single('image') で'image'という名前のファイルを受け付ける
     // 処理の中身は未実装であることを示すレスポンスを返す
@@ -287,7 +287,7 @@ app.post('/garbage/identify', protect, upload.single('image'), async (req, res) 
  * @apiGroup Garbage
  * @apiHeader {String} Authorization Bearerトークン
  */
-app.get('/garbage/search', protect, async (req, res) => {
+apiRouter.get('/garbage/search', protect, async (req, res) => {
     // クエリパラメータ'keyword'の有無をチェック
     const keyword = req.query.keyword;
 
@@ -306,7 +306,7 @@ app.get('/garbage/search', protect, async (req, res) => {
  * @apiGroup BinDays
  * @apiHeader {String} Authorization Bearerトークン
  */
-app.get('/users/me/bin-days', protect, async (req, res) => {
+apiRouter.get('/users/me/bin-days', protect, async (req, res) => {
     const userId = req.user?.userId;
 
     if (userId) {
