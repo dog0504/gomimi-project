@@ -364,6 +364,62 @@ apiRouter.get('/manuals/search', async (req, res) => {
     }
 });
 
+/**
+ * @api {get} /manuals/search/initials 頭文字からマニュアルを検索
+ * @apiName SearchManualsByInitial
+ * @apiGroup Manuals
+ * @apiParam {String} initial 検索する頭文字 (1文字)
+ */
+apiRouter.get('/manuals/search/initials', async (req, res) => {
+    const initial = req.query.initial as string;
+
+    // initialが存在し、かつ1文字であることを確認
+    if (initial && initial.length === 1) {
+        try {
+            const manuals = await ManualService.searchManualsByInitial(initial);
+            res.status(200).json(manuals);
+        } catch (error) {
+            console.error('Failed to search manuals by initial:', error);
+            res.status(500).json({ message: 'Internal Server Error' });
+        }
+    } else {
+        // initialがない、または1文字でない場合は400エラー
+        res.status(400).json({ message: 'クエリパラメータ "initial" は必須で、1文字である必要があります。' });
+    }
+});
+
+/**
+ * @api {get} /manuals/:manualId IDで特定のゴミマニュアルを取得
+ * @apiName GetManualById
+ * @apiGroup Manuals
+ * @apiParam {Number} manualId マニュアルのID
+ */
+apiRouter.get('/manuals/:manualId', async (req, res) => {
+    // パスパラメータからmanualIdを取得し、数値に変換
+    const manualId = parseInt(req.params.manualId, 10);
+
+    // manualIdが有効な数値かチェック
+    if (!isNaN(manualId)) {
+        try {
+            const manual = await ManualService.getManualById(manualId);
+            if (manual) {
+                // マニュアルが見つかった場合
+                res.status(200).json(manual);
+            } else {
+                // サービスがnullを返した場合（＝マニュアルが見つからなかった）
+                res.status(404).json({ message: 'Manual not found.' });
+            }
+        } catch (error) {
+            console.error('Failed to get manual by ID:', error);
+            res.status(500).json({ message: 'Internal Server Error' });
+        }
+    } else {
+        // manualIdが数値でない場合は400エラー
+        res.status(400).json({ message: 'Invalid manual ID format.' });
+    }
+});
+
+
 // データソースの初期化を行う関数を呼び出す
 initDataSource()
     .then(async () => {
