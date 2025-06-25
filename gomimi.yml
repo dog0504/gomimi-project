@@ -16,7 +16,7 @@ info:
     ```
 
 servers:
-  - url: https://api.sitapp.org/api/v1
+  - url: https://{アドレス}/api/v1
     description: ゴミミのAPIサーバー
   - url: http://localhost:8000/api/v1
     description: ローカル開発サーバー
