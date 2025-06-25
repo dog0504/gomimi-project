@@ -11,6 +11,7 @@ import { User } from './entity/User';
 import * as UserService from './services/userService';
 import * as ScheduleService from './services/scheduleService';
 import { protect } from './middleware/authMiddleware';
+import * as ManualService from './services/manualService';
 
 // アップロードされたファイルをメモリ上に一時保存する設定
 const upload = multer({ storage: multer.memoryStorage() });
@@ -320,6 +321,46 @@ apiRouter.get('/users/me/bin-days', protect, async (req, res) => {
     } else {
         // このケースは通常ミドルウェアで弾かれる
         res.status(401).json({ message: 'Unauthorized.' });
+    }
+});
+
+/**
+ * @api {get} /manuals すべてのゴミ名とIDを取得
+ * @apiName GetAllManualSummaries
+ * @apiGroup Manuals
+ */
+apiRouter.get('/manuals', async (req, res) => {
+    try {
+        const manuals = await ManualService.getAllManualSummaries();
+        res.status(200).json(manuals);
+    } catch (error) {
+        console.error('Failed to get manual summaries:', error);
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+});
+
+/**
+ * @api {get} /manuals/search 名前でゴミマニュアルを検索
+ * @apiName SearchManuals
+ * @apiGroup Manuals
+ * @apiParam {String} keyword 検索キーワード
+ */
+apiRouter.get('/manuals/search', async (req, res) => {
+    // クエリからkeywordを取得 (stringとして扱う)
+    const keyword = req.query.keyword as string;
+
+    // keywordが存在し、空文字列でないことを確認
+    if (keyword && keyword.trim() !== '') {
+        try {
+            const manuals = await ManualService.searchManualsByKeyword(keyword);
+            res.status(200).json(manuals);
+        } catch (error) {
+            console.error('Failed to search manuals:', error);
+            res.status(500).json({ message: 'Internal Server Error' });
+        }
+    } else {
+        // keywordが提供されていない、または空の場合は400エラー
+        res.status(400).json({ message: 'クエリパラメータ "keyword" は必須です。' });
     }
 });
 
