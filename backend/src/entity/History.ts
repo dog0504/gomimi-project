@@ -7,6 +7,7 @@ import {
   JoinColumn,
   PrimaryGeneratedColumn,
   ManyToOne,
+  CreateDateColumn
 } from 'typeorm';
 import { User } from './User';
 
@@ -21,11 +22,12 @@ export class History {
   @JoinColumn({ name: 'USER_NO' })
   userId!: number;
 
-  // 3. 主キーから通常カラムに変更
-  @Column({ type: 'date', name: 'J_DATE', nullable: false })
-  Date!: Date; // 判別した日付時間
+  @Column({ type: 'varchar', name: 'NAME', length: 255, nullable: false })
+  name!: string;
 
-  @Column({ type: 'varchar', name: 'J_TYPE', length: 10, nullable: false })
+  @Column({ type: 'varchar', name: 'J_TYPE', length: 60, nullable: true })
   type!: string; // 判別したごみの種類
 
+  @CreateDateColumn({ type: 'datetime', name: 'J_DATE'})
+  Date!: Date; // 判別した日付時間
 }

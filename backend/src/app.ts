@@ -12,6 +12,7 @@ import * as UserService from './services/userService';
 import * as ScheduleService from './services/scheduleService';
 import { protect } from './middleware/authMiddleware';
 import * as ManualService from './services/manualService';
+import * as HistoryService from './services/historyService';
 
 // アップロードされたファイルをメモリ上に一時保存する設定
 const upload = multer({ storage: multer.memoryStorage() });
@@ -416,6 +417,65 @@ apiRouter.get('/manuals/:manualId', async (req, res) => {
     } else {
         // manualIdが数値でない場合は400エラー
         res.status(400).json({ message: 'Invalid manual ID format.' });
+    }
+});
+
+/**
+ * @api {get} /users/me/histories ユーザーの履歴を取得
+ * @apiName GetUserHistories
+ * @apiGroup Histories
+ * @apiHeader {String} Authorization Bearerトークン
+ * @apiParam {Number} [limit=20] 取得件数
+ * @apiParam {Number} [offset=0] 開始位置
+ */
+apiRouter.get('/users/me/histories', protect, async (req, res) => {
+    const userId = req.user?.userId;
+
+    if (userId) {
+        // クエリからlimitとoffsetを取得し、数値に変換。未指定の場合はデフォルト値を使用。
+        const limit = parseInt(req.query.limit as string, 10) || 20;
+        const offset = parseInt(req.query.offset as string, 10) || 0;
+
+        try {
+            const histories = await HistoryService.getHistoriesForUser(userId, limit, offset);
+            res.status(200).json(histories);
+        } catch (error) {
+            console.error('Failed to get user histories:', error);
+            res.status(500).json({ message: 'Internal Server Error' });
+        }
+    } else {
+        // このケースは通常ミドルウェアで弾かれる
+        res.status(401).json({ message: 'Unauthorized.' });
+    }
+});
+
+/**
+ * @api {post} /users/me/histories ユーザーの識別履歴を追加
+ * @apiName AddIdentificationHistory
+ * @apiGroup Histories
+ * @apiHeader {String} Authorization Bearerトークン
+ * @apiBody {String} name 識別されたゴミの名前
+ * @apiBody {String} [type] 識別されたゴミの分別区分
+ */
+apiRouter.post('/users/me/histories', protect, async (req, res) => {
+    const userId = req.user?.userId;
+    const { name, type } = req.body;
+
+    if (userId) {
+        // API仕様に基づき、nameが必須
+        if (typeof name === 'string' && name.trim() !== '') {
+            try {
+                const newHistory = await HistoryService.addHistoryForUser(userId, { name: name.trim(), type: type });
+                res.status(201).json(newHistory);
+            } catch (error) {
+                console.error('Failed to add user history:', error);
+                res.status(500).json({ message: 'Internal Server Error' });
+            }
+        } else {
+            res.status(400).json({ message: 'リクエストボディに "name" (文字列) は必須です。' });
+        }
+    } else {
+        res.status(401).json({ message: 'Unauthorized.' });
     }
 });
 
