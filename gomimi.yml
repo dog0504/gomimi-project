@@ -403,7 +403,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AddressResponseBody'
+                type: array
+                items:
+                  $ref: '#/components/schemas/AddressResponseBody'
         '404':
           description: Address not found.
 
