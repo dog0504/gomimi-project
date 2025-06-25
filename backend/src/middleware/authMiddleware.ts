@@ -1,6 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
 import * as jwt from 'jsonwebtoken';
 
+function logWithTimestamp(...messages: any[]) {
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}]`, ...messages);
+}
+
 // app.tsで定義したものと同じ秘密鍵を使用
 const JWT_SECRET = 'your-super-secret-key-that-is-at-least-32-characters-long';
 
@@ -22,7 +27,7 @@ declare global {
  * JWTを検証し、リクエストを保護するミドルウェア
  */
 export const protect = (req: Request, res: Response, next: NextFunction) => {
-    console.log('Auth middleware called'); // デバッグ用ログ
+    logWithTimestamp('[INFO] Auth middleware called'); // デバッグ用ログ
     let token;
 
     // ヘッダーに 'Authorization: Bearer <token>' があるかチェック
