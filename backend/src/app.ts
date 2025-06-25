@@ -1,4 +1,10 @@
-console.log("Hello TypeScript + TypeORM!");
+// タイムスタンプ付きのカスタムロガー関数
+function logWithTimestamp(...messages: any[]) {
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}]`, ...messages);
+}
+
+logWithTimestamp("Hello TypeScript + TypeORM!");
 import http from 'http';
 import "reflect-metadata";
 import express from "express";
@@ -13,6 +19,8 @@ import * as ScheduleService from './services/scheduleService';
 import { protect } from './middleware/authMiddleware';
 import * as ManualService from './services/manualService';
 import * as HistoryService from './services/historyService';
+import { findAddressesByPostalCode } from './services/addressService';
+import { getAllLanguages } from './services/languageService';
 
 // アップロードされたファイルをメモリ上に一時保存する設定
 const upload = multer({ storage: multer.memoryStorage() });
@@ -54,7 +62,7 @@ apiRouter.get('/', (req, res) => {
  * @apiGroup Auth
  */
 apiRouter.post('/auth/register', async (req, res) => {
-    console.log('Received registration request:', req.body); // 追加: 受信ボディをログ出力
+    logWithTimestamp('[INFO] Received registration request:', req.body); // 修正済み
 
     if (!req.body) {
         res.status(400).json({ message: 'Request body is missing or invalid JSON.' });
@@ -73,9 +81,9 @@ apiRouter.post('/auth/register', async (req, res) => {
 
         // ユーザー登録成功後、JWTを生成
         const accessToken = jwt.sign(
-        { userId: newUser.id, email: newUser.email },
-        JWT_SECRET,
-        { expiresIn: '1h' } // トークンの有効期限 (例: 1時間)
+            { userId: newUser.id, email: newUser.email },
+            JWT_SECRET,
+            { expiresIn: '1h' } // トークンの有効期限 (例: 1時間)
         );
 
         // API仕様書通り、アクセストークンを返す
@@ -105,7 +113,7 @@ apiRouter.post('/auth/register', async (req, res) => {
  * @apiGroup Auth
  */
 apiRouter.post('/auth/login', async (req, res) => {
-    console.log('Received login request:', req.body); // 追加: 受信ボディをログ出力
+    logWithTimestamp('[INFO] Received login request:', req.body); // 修正済み
     const credentials: UserService.UserLoginRequest = req.body;
 
     // 入力値検証
@@ -126,7 +134,7 @@ apiRouter.post('/auth/login', async (req, res) => {
         );
 
         // API仕様書通り、アクセストークンを返す
-        console.log('Login successful, returning access token.');
+        console.log('[INFO] Login successful, returning access token.');
         res.status(200).json({ accessToken });
 
     } catch (error) {
@@ -150,7 +158,7 @@ apiRouter.post('/auth/login', async (req, res) => {
 apiRouter.get('/users/me', protect, async (req, res) => {
     //                  ^^^^^^^
     // protectミドルウェアをここに追加。これ以降の処理は認証成功した場合のみ実行される。
-    console.log('Received request to get user profile:', req.user); // 追加: リクエストユーザー情報をログ出力
+    logWithTimestamp('[INFO] Received request to get user profile:', req.user); // 修正済み
     try {
         // ミドルウェアによって追加された `req.user` からユーザーIDを取得
         const userId = req.user!.userId;
@@ -192,6 +200,7 @@ apiRouter.get('/users/me', protect, async (req, res) => {
  * @apiBody {Number} address.id 新しい住所のID
  */
 apiRouter.put('/users/me', protect, async (req, res) => {
+    logWithTimestamp('[INFO] Received request to update user profile:', req.body); // 修正済み
     const userId = req.user!.userId;
     const updateData: UserService.UserUpdateRequest = req.body;
 
@@ -244,6 +253,7 @@ apiRouter.put('/users/me', protect, async (req, res) => {
  * @apiHeader {String} Authorization Bearerトークン
  */
 apiRouter.delete('/users/me', protect, async (req, res) => {
+    logWithTimestamp('[INFO] Received request to delete user account:', req.user); // 修正済み
     const userId = req.user?.userId;
 
     if (userId) {
@@ -277,6 +287,7 @@ apiRouter.delete('/users/me', protect, async (req, res) => {
  * @apiHeader {String} Authorization Bearerトークン
  */
 apiRouter.post('/garbage/identify', protect, upload.single('image'), async (req, res) => {
+    logWithTimestamp('[INFO] Received garbage identification request:', req.file); // 修正済み
     // protectミドルウェアで認証をチェック
     // upload.single('image') で'image'という名前のファイルを受け付ける
     // 処理の中身は未実装であることを示すレスポンスを返す
@@ -290,6 +301,7 @@ apiRouter.post('/garbage/identify', protect, upload.single('image'), async (req,
  * @apiHeader {String} Authorization Bearerトークン
  */
 apiRouter.get('/garbage/search', protect, async (req, res) => {
+    logWithTimestamp('[INFO] Received garbage search request:', req.query); // 修正済み
     // クエリパラメータ'keyword'の有無をチェック
     const keyword = req.query.keyword;
 
@@ -309,6 +321,7 @@ apiRouter.get('/garbage/search', protect, async (req, res) => {
  * @apiHeader {String} Authorization Bearerトークン
  */
 apiRouter.get('/users/me/bin-days', protect, async (req, res) => {
+    logWithTimestamp('[INFO] Received request to get user bin days:', req.user); // 修正済み
     const userId = req.user?.userId;
 
     if (userId) {
@@ -331,6 +344,7 @@ apiRouter.get('/users/me/bin-days', protect, async (req, res) => {
  * @apiGroup Manuals
  */
 apiRouter.get('/manuals', async (req, res) => {
+    logWithTimestamp('[INFO] Received request to get all manual summaries.'); // 修正済み
     try {
         const manuals = await ManualService.getAllManualSummaries();
         res.status(200).json(manuals);
@@ -347,6 +361,7 @@ apiRouter.get('/manuals', async (req, res) => {
  * @apiParam {String} keyword 検索キーワード
  */
 apiRouter.get('/manuals/search', async (req, res) => {
+    logWithTimestamp('[INFO] Received request to search manuals by keyword:', req.query); // 修正済み
     // クエリからkeywordを取得 (stringとして扱う)
     const keyword = req.query.keyword as string;
 
@@ -372,6 +387,7 @@ apiRouter.get('/manuals/search', async (req, res) => {
  * @apiParam {String} initial 検索する頭文字 (1文字)
  */
 apiRouter.get('/manuals/search/initials', async (req, res) => {
+    logWithTimestamp('[INFO] Received request to search manuals by initial:', req.query); // 修正済み
     const initial = req.query.initial as string;
 
     // initialが存在し、かつ1文字であることを確認
@@ -396,6 +412,7 @@ apiRouter.get('/manuals/search/initials', async (req, res) => {
  * @apiParam {Number} manualId マニュアルのID
  */
 apiRouter.get('/manuals/:manualId', async (req, res) => {
+    logWithTimestamp('[INFO] Received request to get manual by ID:', req.params.manualId); // 修正済み
     // パスパラメータからmanualIdを取得し、数値に変換
     const manualId = parseInt(req.params.manualId, 10);
 
@@ -429,6 +446,7 @@ apiRouter.get('/manuals/:manualId', async (req, res) => {
  * @apiParam {Number} [offset=0] 開始位置
  */
 apiRouter.get('/users/me/histories', protect, async (req, res) => {
+    logWithTimestamp('[INFO] Received request to get user histories:', req.user); // 修正済み
     const userId = req.user?.userId;
 
     if (userId) {
@@ -458,6 +476,7 @@ apiRouter.get('/users/me/histories', protect, async (req, res) => {
  * @apiBody {String} [type] 識別されたゴミの分別区分
  */
 apiRouter.post('/users/me/histories', protect, async (req, res) => {
+    logWithTimestamp('[INFO] Received request to add user history:', req.body); // 修正済み
     const userId = req.user?.userId;
     const { name, type } = req.body;
 
@@ -479,18 +498,69 @@ apiRouter.post('/users/me/histories', protect, async (req, res) => {
     }
 });
 
+/**
+ * @api {get} /addresses/search 郵便番号から住所を検索
+ * @apiName SearchAddresses
+ * @apiGroup Addresses
+ * @apiParam {String} postalCode 検索する郵便番号
+ */
+apiRouter.get('/addresses/search', async (req, res) => {
+    logWithTimestamp('[INFO] Received request to search addresses by postal code:', req.query); // 修正済み
+    const postalCode = req.query.postalCode as string;
+
+    // postalCodeが存在し、空文字列でないことを確認
+    if (postalCode && postalCode.trim() !== '') {
+        try {
+            const addresses = await findAddressesByPostalCode(postalCode.trim());
+            if (addresses.length > 0) {
+                // 住所が見つかった場合
+                res.status(200).json(addresses);
+            } else {
+                // API仕様書に従い、見つからなかった場合は404エラー
+                res.status(404).json({ message: 'Address not found.' });
+            }
+        } catch (error) {
+            console.error('Failed to search addresses:', error);
+            res.status(500).json({ message: 'Internal Server Error' });
+        }
+    } else {
+        // postalCodeが提供されていない場合は400エラー
+        res.status(400).json({ message: 'クエリパラメータ "postalCode" は必須です。' });
+    }
+});
+
+/**
+ * @api {get} /languages 利用可能な言語のリストを取得
+ * @apiName GetLanguages
+ * @apiGroup Languages
+ */
+apiRouter.get('/languages', async (req, res) => {
+    logWithTimestamp('[INFO] Received request to get all languages.'); // 修正済み
+    try {
+        const languages = await getAllLanguages();
+        res.status(200).json(languages);
+    } catch (error) {
+        console.error('Failed to get languages:', error);
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+});
 
 // データソースの初期化を行う関数を呼び出す
 initDataSource()
     .then(async () => {
         // データの登録
         // await seedDatabase();
-        console.log("データベースの初期化が完了しました。");
+        logWithTimestamp("データベースの初期化が完了しました。");
+
+        // 現在の時間を取得してログに出力
+        const currentTime = new Date().toISOString();
+        logWithTimestamp(`現在の時間: ${currentTime}`);
+
         // サーバーを起動
         server.listen(port, () => {
-            console.log(`Server is running on port ${port}`);
+            logWithTimestamp(`Server is running on port ${port}`);
         });
     })
     .catch((error) => {
-        console.error('Error during Data Source initialization:', error);
+        logWithTimestamp(`Error during Data Source initialization: ${error}`);
     });
