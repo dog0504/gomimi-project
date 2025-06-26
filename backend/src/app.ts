@@ -21,6 +21,8 @@ import * as ManualService from './services/manualService';
 import * as HistoryService from './services/historyService';
 import { findAddressesByPostalCode } from './services/addressService';
 import { getAllLanguages } from './services/languageService';
+import { identifyGarbageFromImage } from './services/garbageService';
+import { addHistoryForUser } from './services/historyService';
 
 // アップロードされたファイルをメモリ上に一時保存する設定
 const upload = multer({ storage: multer.memoryStorage() });
@@ -276,44 +278,6 @@ apiRouter.delete('/users/me', protect, async (req, res) => {
     }
 });
 
-// ===================================
-//   Garbage エンドポイント
-// ===================================
-
-/**
- * @api {post} /garbage/identify 画像からゴミを識別 (未実装)
- * @apiName IdentifyGarbage
- * @apiGroup Garbage
- * @apiHeader {String} Authorization Bearerトークン
- */
-apiRouter.post('/garbage/identify', protect, upload.single('image'), async (req, res) => {
-    logWithTimestamp('[INFO] Received garbage identification request:', req.file); // 修正済み
-    // protectミドルウェアで認証をチェック
-    // upload.single('image') で'image'という名前のファイルを受け付ける
-    // 処理の中身は未実装であることを示すレスポンスを返す
-    res.status(501).json({ message: 'この機能はまだ実装されていません。' });
-});
-
-/**
- * @api {get} /garbage/search 名前でゴミを検索 (未実装)
- * @apiName SearchGarbage
- * @apiGroup Garbage
- * @apiHeader {String} Authorization Bearerトークン
- */
-apiRouter.get('/garbage/search', protect, async (req, res) => {
-    logWithTimestamp('[INFO] Received garbage search request:', req.query); // 修正済み
-    // クエリパラメータ'keyword'の有無をチェック
-    const keyword = req.query.keyword;
-
-    if (keyword) {
-        // keywordがあっても、処理の中身は未実装であることを示すレスポンスを返す
-        res.status(501).json({ message: 'この機能はまだ実装されていません。' });
-    } else {
-        // API仕様書ではkeywordは必須なので、ない場合は400エラーを返す
-        res.status(400).json({ message: 'クエリパラメータ "keyword" は必須です。' });
-    }
-});
-
 /**
  * @api {get} /users/me/bin-days ユーザーのゴミ収集日を取得
  * @apiName GetUserBinDays
@@ -542,6 +506,58 @@ apiRouter.get('/languages', async (req, res) => {
     } catch (error) {
         console.error('Failed to get languages:', error);
         res.status(500).json({ message: 'Internal Server Error' });
+    }
+});
+
+// ===================================
+//   Garbage エンドポイント
+// ===================================
+
+/**
+ * @api {post} /garbage/identify 画像からゴミを識別
+ * @apiName IdentifyGarbage
+ * @apiGroup Garbage
+ * @apiHeader {String} Authorization Bearerトークン
+ */
+apiRouter.post('/garbage/identify', protect, upload.single('image'), async (req, res) => {
+    const userId = req.user?.userId;
+
+    if (userId) {
+        if (req.file) {
+        try {
+            // 1. 外部APIを呼び出してゴミの識別候補リストを取得
+            const identificationResults = await identifyGarbageFromImage(req.file.buffer);
+
+            if (identificationResults && identificationResults.length > 0) {
+            
+            // 2. 識別結果リストの各項目について、履歴保存処理を行う
+            for (const result of identificationResults) {
+                // 3. 識別名でマニュアルを検索
+                const manual = await ManualService.findManualByName(result.name);
+                
+                // 4. マニュアルが見つかればそのtypeを、なければnullを履歴のtypeとする
+                const typeForHistory = manual ? manual.type : null;
+                
+                // 5. 履歴を保存
+                await addHistoryForUser(userId, { name: result.name, type: typeForHistory });
+            }
+            // --- ★ここまで ---
+
+            // 6. API仕様書通り、識別結果のリストをクライアントにレスポンスとして返す
+            res.status(200).json(identificationResults);
+
+            } else {
+            res.status(404).json({ message: 'Could not identify the garbage from the image.' });
+            }
+        } catch (error) {
+            console.error('Failed during garbage identification process:', error);
+            res.status(503).json({ message: (error as Error).message });
+        }
+        } else {
+        res.status(400).json({ message: 'No image provided.' });
+        }
+    } else {
+        res.status(401).json({ message: 'Unauthorized.' });
     }
 });
 

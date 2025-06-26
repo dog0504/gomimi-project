@@ -144,7 +144,7 @@ paths:
       tags:
         - Garbage
       summary: 画像からゴミを識別
-      description: 画像をアップロードしてゴミの種類を識別します。AIサービスと連携する可能性があります。
+      description: 画像をアップロードしてゴミの種類を識別します。Server側で履歴も保存します。
       security:
         - bearerAuth: []
       requestBody:
@@ -163,45 +163,11 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  result:
-                    type: string
-                    example: "ペットボトル"
-                  category:
-                    type: string
-                    example: "資源ごみ"
-                  description:
-                    type: string
-                    example: "キャップとラベルを外し、中をすすいでから捨ててください。"
-        '400':
-          description: No image provided.
-        '401':
-          description: Unauthorized.
-
-  /garbage/search:
-    get:
-      tags:
-        - Garbage
-      summary: 名前でゴミを検索(検討中)(配列)
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: keyword
-          in: query
-          required: true
-          schema:
-            type: string
-          description: The name of the garbage item to search for.
-      responses:
-        '200':
-          description: Search results.
-          content:
-            application/json:
-              schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Manual'
+                  $ref: '#/components/schemas/ResposeGarbageIdentify'
+        '400':
+          description: No image provided.
         '401':
           description: Unauthorized.
 
@@ -702,6 +668,15 @@ components:
         accessToken:
           type: string
           example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    ResposeGarbageIdentify:
+      type: object
+      properties:
+        rank:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "コップ（ガラス製）"
 
 
   securitySchemes:

@@ -125,3 +125,17 @@ export const getManualById = async (manualId: number): Promise<ManualDetail | nu
         return null;
     }
 };
+
+/**
+ * ゴミの名前でマニュアルを一件検索する (完全一致)
+ * @param name 検索するゴミの名前
+ * @returns Manualsエンティティ、または見つからない場合はnull
+ */
+export const findManualByName = async (name: string): Promise<Manuals | null> => {
+    const manualRepository = AppDataSource.getRepository(Manuals);
+    
+    // 'garbage' カラムで完全一致検索
+    const manual = await manualRepository.findOneBy({ garbage: name });
+    
+    return manual;
+};
