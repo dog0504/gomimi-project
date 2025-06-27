@@ -16,22 +16,6 @@ services:
     networks:
       - app_network
 
-  # Python AIサービス (画像認識など)
-  ai_service:
-    build:
-      context: ./ai_service # AIアプリのコードがあるディレクトリ
-      dockerfile: Dockerfile
-    container_name: ai_service
-    hostname: ai_service # コンテナ内でのホスト名
-    ports: # (開発時や外部から直接アクセスする場合)
-      - "5001:5001" # FastAPIと重複しないポート
-    volumes:
-      - ./ai_service:/usr/src/python # ホストの./ai_serviceをコンテナの/usr/src/pythonにマウント
-      # (もしモデルをマウントするなら)
-      # - ./ai_service/model:/ai_app/model:ro
-    networks:
-      - app_network
-
   # MySQL データベースサービス
   db_service:
     image: mysql:8.4
