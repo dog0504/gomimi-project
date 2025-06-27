@@ -4,11 +4,17 @@ import FormData from 'form-data';
 // Python APIのレスポンスの型定義
 interface PythonApiResponse {
     success: boolean;
+    query_text: string;
     search_results: {
         rank: number;
         item_name: string;
         similarity: number;
     }[];
+}
+
+export interface FullIdentificationResponse {
+    query_text: string;
+    results: IdentificationResult[];
 }
 
 // このサービスが返す識別結果の型
@@ -25,7 +31,7 @@ const PYTHON_API_URL = 'http://192.168.10.150:8000/identify-garbage/';
  * @param imageBuffer 画像ファイルのバッファ
  * @returns 識別結果のリスト、またはnull
  */
-export const identifyGarbageFromImage = async (imageBuffer: Buffer): Promise<IdentificationResult[] | null> => {
+export const identifyGarbageFromImage = async (imageBuffer: Buffer): Promise<FullIdentificationResponse | null> => {
     const form = new FormData();
     form.append('image_file', imageBuffer, {
         filename: 'image.png',
@@ -41,11 +47,13 @@ export const identifyGarbageFromImage = async (imageBuffer: Buffer): Promise<Ide
 
         const apiData = response.data;
         if (apiData && apiData.success && apiData.search_results.length > 0) {
-            // --- ★Python APIの結果をマッピングしてリスト全体を返すように修正 ---
-            return apiData.search_results.map(result => ({
-                rank: result.rank,
-                name: result.item_name,
-            }));
+            return {
+                query_text: apiData.query_text,
+                results: apiData.search_results.map(result => ({
+                    rank: result.rank,
+                    name: result.item_name,
+                })),
+            };
         }
         return null;
     } catch (error) {
