@@ -528,10 +528,10 @@ apiRouter.post('/garbage/identify', protect, upload.single('image'), async (req,
             // 1. 外部APIを呼び出してゴミの識別候補リストを取得
             const identificationResults = await identifyGarbageFromImage(req.file.buffer);
 
-            if (identificationResults && identificationResults.length > 0) {
+            if (identificationResults && identificationResults.results.length > 0) {
             
             // 2. 識別結果リストの各項目について、履歴保存処理を行う
-            for (const result of identificationResults) {
+            for (const result of identificationResults.results) {
                 // 3. 識別名でマニュアルを検索
                 const manual = await ManualService.findManualByName(result.name);
                 
