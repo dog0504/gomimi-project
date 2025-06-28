@@ -567,7 +567,7 @@ apiRouter.post('/garbage/identify', protect, upload.single('image'), async (req,
  * @apiGroup Garbage
  * @apiHeader {String} Authorization Bearerトークン
  */
-app.post('/garbage/identify/test', protect, upload.single('image'), async (req, res) => {
+apiRouter.post('/garbage/identify/test', protect, upload.single('image'), async (req, res) => {
     const userId = req.user?.userId;
 
     if (userId) {
