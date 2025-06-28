@@ -620,7 +620,7 @@ apiRouter.post('/garbage/identify/test', protect, upload.single('image'), async 
  * @apiGroup Manuals
  * @apiParam {String} name 完全一致で検索する名前
  */
-app.get('/manuals/search/exact', async (req, res) => {
+apiRouter.get('/manuals/search/exact', async (req, res) => {
     const name = req.query.name as string;
 
     // nameクエリパラメータが存在し、空でないことを確認
