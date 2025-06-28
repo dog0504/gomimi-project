@@ -314,6 +314,28 @@ paths:
                       type: string
                       example: "ペットボトル"
 
+  /manuals/search/exact:
+    get:
+      tags:
+        - Manuals
+      summary: 名前でゴミマニュアルを完全一致検索
+      parameters:
+        - name: name
+          in: query
+          required: true
+          schema:
+            type: string
+          description: 完全一致で検索するゴミマニュアルの名前
+      responses:
+        '200':
+          description: Manual details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Manual'
+        '404':
+          description: Manual not found.
+
   /manuals/{manualId}:
     get:
       tags:

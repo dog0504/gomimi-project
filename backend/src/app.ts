@@ -578,26 +578,26 @@ apiRouter.post('/garbage/identify/test', protect, upload.single('image'), async 
         const dummyResponse = {
             query: "Anker portable charger",
             results: [
-            {
-                rank: 1,
-                name: "充電器（アダプター"
-            },
-            {
-                rank: 2,
-                name: "小型充電式電池"
-            },
-            {
-                rank: 3,
-                name: "充電式電池"
-            },
-            {
-                rank: 4,
-                name: "アダプター（充電用）"
-            },
-            {
-                rank: 5,
-                name: "電池（充電式電池）"
-            }
+                {
+                    rank: 1,
+                    name: "充電器（アダプター）"
+                },
+                {
+                    rank: 2,
+                    name: "小型充電式電池"
+                },
+                {
+                    rank: 3,
+                    name: "充電式電池"
+                },
+                {
+                    rank: 4,
+                    name: "アダプター（充電用）"
+                },
+                {
+                    rank: 5,
+                    name: "電池（充電式電池）"
+                }
             ]
         };
 
@@ -611,6 +611,44 @@ apiRouter.post('/garbage/identify/test', protect, upload.single('image'), async 
     } else {
         // 認証されていない場合
         res.status(401).json({ message: 'Unauthorized.' });
+    }
+});
+
+/**
+ * @api {get} /manuals/search/exact 名前でゴミマニュアルを完全一致検索
+ * @apiName SearchManualsExact
+ * @apiGroup Manuals
+ * @apiParam {String} name 完全一致で検索する名前
+ */
+app.get('/manuals/search/exact', async (req, res) => {
+    const name = req.query.name as string;
+
+    // nameクエリパラメータが存在し、空でないことを確認
+    if (name && name.trim() !== '') {
+        try {
+        // サービスを呼び出してマニュアルを検索
+        const manual = await ManualService.findManualByName(name.trim());
+
+        if (manual) {
+            // マニュアルが見つかった場合、API仕様の形式にマッピングして返す
+            const responseBody = {
+                id: manual.id,
+                name: manual.garbage,
+                category: manual.type,
+                remarks: manual.contents
+            };
+            res.status(200).json(responseBody);
+        } else {
+            // マニュアルが見つからなかった場合は404エラー
+            res.status(404).json({ message: 'Manual not found.' });
+        }
+        } catch (error) {
+            console.error('Failed to search manual by exact name:', error);
+            res.status(500).json({ message: 'Internal Server Error' });
+        }
+    } else {
+        // nameクエリパラメータがない場合は400エラー
+        res.status(400).json({ message: 'クエリパラメータ "name" は必須です。' });
     }
 });
 
