@@ -163,17 +163,15 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    query:
-                      type: string
-                      example: "water bottle"
-                    results:
-                      type: array
-                      items:
-                          $ref: '#/components/schemas/ResposeGarbageIdentify'
+                type: object
+                properties:
+                  query:
+                    type: string
+                    example: "water bottle"
+                  results:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/ResposeGarbageIdentify'
         '400':
           description: No image provided.
         '401':
@@ -202,17 +200,15 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    query:
-                      type: string
-                      example: "water bottle"
-                    results:
-                      type: array
-                      items:
-                          $ref: '#/components/schemas/ResposeGarbageIdentify'
+                type: object
+                properties:
+                  query:
+                    type: string
+                    example: "water bottle"
+                  results:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/ResposeGarbageIdentify'
         '400':
           description: No image provided.
         '401':

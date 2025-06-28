@@ -575,7 +575,7 @@ apiRouter.post('/garbage/identify/test', protect, upload.single('image'), async 
         if (req.file) {
         // ダミーのレスポンスデータを作成
         // 新しいAPI仕様書で定義されたレスポンス形式に合わせる
-        const dummyResponse = [{
+        const dummyResponse = {
             query: "Anker portable charger",
             results: [
             {
@@ -599,7 +599,7 @@ apiRouter.post('/garbage/identify/test', protect, upload.single('image'), async 
                 name: "電池（充電式電池）"
             }
             ]
-        }];
+        };
 
         // ダミーデータを200 OKステータスで返す
         res.status(200).json(dummyResponse);
