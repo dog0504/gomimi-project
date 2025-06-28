@@ -561,6 +561,59 @@ apiRouter.post('/garbage/identify', protect, upload.single('image'), async (req,
     }
 });
 
+/**
+ * @api {post} /garbage/identify/test 画像からゴミを識別 (テスト用)
+ * @apiName IdentifyGarbageTest
+ * @apiGroup Garbage
+ * @apiHeader {String} Authorization Bearerトークン
+ */
+app.post('/garbage/identify/test', protect, upload.single('image'), async (req, res) => {
+    const userId = req.user?.userId;
+
+    if (userId) {
+        // 画像ファイルがリクエストに含まれているかだけをチェック
+        if (req.file) {
+        // ダミーのレスポンスデータを作成
+        // 新しいAPI仕様書で定義されたレスポンス形式に合わせる
+        const dummyResponse = [{
+            query: "Anker portable charger",
+            results: [
+            {
+                rank: 1,
+                name: "充電器（アダプター"
+            },
+            {
+                rank: 2,
+                name: "小型充電式電池"
+            },
+            {
+                rank: 3,
+                name: "充電式電池"
+            },
+            {
+                rank: 4,
+                name: "アダプター（充電用）"
+            },
+            {
+                rank: 5,
+                name: "電池（充電式電池）"
+            }
+            ]
+        }];
+
+        // ダミーデータを200 OKステータスで返す
+        res.status(200).json(dummyResponse);
+        
+        } else {
+            // 画像が提供されなかった場合は400エラー
+            res.status(400).json({ message: 'No image provided.' });
+        }
+    } else {
+        // 認証されていない場合
+        res.status(401).json({ message: 'Unauthorized.' });
+    }
+});
+
 // データソースの初期化を行う関数を呼び出す
 initDataSource()
     .then(async () => {

@@ -178,6 +178,45 @@ paths:
           description: No image provided.
         '401':
           description: Unauthorized.
+  /garbage/identify/test:
+    post:
+      tags:
+        - Garbage
+      summary: 画像からゴミを識別(テスト用)
+      description: 画像をアップロードしてゴミの種類を識別します。Server側で履歴も保存します。
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                image:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Identification result.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    query:
+                      type: string
+                      example: "water bottle"
+                    results:
+                      type: array
+                      items:
+                          $ref: '#/components/schemas/ResposeGarbageIdentify'
+        '400':
+          description: No image provided.
+        '401':
+          description: Unauthorized.
 
   /users/me/bin-days:
     get:
