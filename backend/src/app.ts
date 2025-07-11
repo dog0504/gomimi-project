@@ -24,6 +24,8 @@ import { getAllLanguages } from './services/languageService';
 import { identifyGarbageFromImage } from './services/garbageService';
 import { addHistoryForUser } from './services/historyService';
 
+import { importManuals } from './import-manuals'; // マニュアルインポート関数をインポート
+
 // アップロードされたファイルをメモリ上に一時保存する設定
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -657,6 +659,7 @@ initDataSource()
     .then(async () => {
         // データの登録
         // await seedDatabase();
+        // importManuals(); // マニュアルのインポートを実行
         logWithTimestamp("データベースの初期化が完了しました。");
 
         // 現在の時間を取得してログに出力
