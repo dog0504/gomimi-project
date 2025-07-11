@@ -17,3 +17,5 @@ sql/MANUALS.sql.zip
 sql/GARBAGE_TYPE.sql.zip
 sql/COLLECTION_SCHEDULE.sql.zip
 sql/ADDRESS.sql.zip
+sql/sql_backup/*
+backend/GOMI_en.csv
