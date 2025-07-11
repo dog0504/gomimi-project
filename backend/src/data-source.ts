@@ -19,4 +19,6 @@ export const AppDataSource = new DataSource({
   entities: [User, History, Tification, Address, Manuals, GarbageType, CollectionSchedule, Language],
   synchronize: false, // ←これでテーブル自動作成
   logging: true,
+  migrations: ['src/migrations/*.ts'],
+  
 });
