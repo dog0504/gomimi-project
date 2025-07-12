@@ -1,21 +1,48 @@
-// src/entity/Manuals.ts
-
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
+import { ManualTranslation } from './ManualTranslation';
+import { Area } from './Area';
 
 @Entity('MANUALS')
-export class Manuals {
+export class Manual {
   @PrimaryGeneratedColumn({ type: 'int', name: 'ITEM_NO' })
-  id!: number; // ゴミ識別番号 
+  id!: number;
 
-  @Column({ type: 'varchar', name: 'GARBAGE', length: 256, nullable: false })
-  garbage!: string; // ゴミ名前 
+  // --- ★ここを追加★ ---
+  @Column({ type: 'varchar', name: 'garbage_ja', length: 255, comment: 'AI検索用の日本語ゴミ名' })
+  garbageJa!: string;
+  // --------------------
 
-  @Column({ type: 'varchar', name: 'G_TYPE', length: 50, nullable: false })
-  type!: string; // 分別区分 
+  // GARBAGE, G_TYPE, CONTENTS, WORD のカラム定義は削除
 
-  @Column({ type: 'text', name: 'CONTENTS', nullable: true })
-  contents!: string; // 分別注意文 
+  @OneToMany(() => ManualTranslation, (translation) => translation.manual, {
+    cascade: true,
+    eager: true,
+  })
+  translations!: ManualTranslation[];
 
-  @Column({ type: 'varchar', name: 'WORD', length: 4, nullable: false })
-  word!: string; // キーワード 
+  @ManyToOne(() => Area)
+  @JoinColumn({ name: 'area_id' })
+  area!: Area;
 }
+
+// // src/entity/Manuals.ts
+
+// import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+
+// @Entity('MANUALS')
+// export class Manuals {
+//   @PrimaryGeneratedColumn({ type: 'int', name: 'ITEM_NO' })
+//   id!: number; // ゴミ識別番号 
+
+//   @Column({ type: 'varchar', name: 'GARBAGE', length: 256, nullable: false })
+//   garbage!: string; // ゴミ名前 
+
+//   @Column({ type: 'varchar', name: 'G_TYPE', length: 50, nullable: false })
+//   type!: string; // 分別区分 
+
+//   @Column({ type: 'text', name: 'CONTENTS', nullable: true })
+//   contents!: string; // 分別注意文 
+
+//   @Column({ type: 'varchar', name: 'WORD', length: 4, nullable: false })
+//   word!: string; // キーワード 
+// }
