@@ -1,6 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
 import { ManualTranslation } from './ManualTranslation';
 import { Area } from './Area';
+import { History } from './History';
 
 @Entity('MANUALS')
 export class Manual {
@@ -8,7 +9,7 @@ export class Manual {
   id!: number;
 
   // --- ★ここを追加★ ---
-  @Column({ type: 'varchar', name: 'garbage_ja', length: 255, comment: 'AI検索用の日本語ゴミ名' })
+  @Column({ type: 'varchar', name: 'garbage_ja', length: 256, comment: 'AI検索用の日本語ゴミ名' })
   garbageJa!: string;
   // --------------------
 
@@ -20,9 +21,18 @@ export class Manual {
   })
   translations!: ManualTranslation[];
 
-  @ManyToOne(() => Area)
-  @JoinColumn({ name: 'area_id' })
+  @ManyToOne(() => Area, (area) => area.manuals, {
+      nullable: false, // DBがNOT NULLなのでfalseを指定
+      onDelete: 'RESTRICT', // DBの制約に合わせる
+  })
+  @JoinColumn({ name: 'area_id', referencedColumnName: 'id', foreignKeyConstraintName: 'FK_manual_to_area' })
   area!: Area;
+
+  // @OneToMany(() => History, (history) => history.manual, {
+  //   cascade: true,
+  //   eager: true,
+  // })
+  // histories!: History[];
 }
 
 // // src/entity/Manuals.ts
