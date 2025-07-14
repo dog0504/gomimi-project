@@ -6,6 +6,8 @@ import { Language } from "../entity/Language";
 import { Not } from "typeorm"; // TypeORMのNot演算子をインポート
 import { ZipCodeTranslation } from "../entity/ZipCodeTranslation";
 import * as model from "../responseModel"
+import { UserResponseDto } from '../dto/UserResponseDto'; // 作成したDTOをインポート
+import { plainToInstance } from 'class-transformer';   // class-transformerからインポート
 
 // APIからの入力データ型を定義
 export interface UserCreationRequest {
@@ -118,54 +120,94 @@ export const authenticateUser = async (credentials: UserLoginRequest): Promise<U
 };
 
 /**
- * IDでユーザーを検索し、プロフィール情報（住所も含む）を返す
+ * IDでユーザーを検索し、整形されたプロフィール情報(DTO)を返す
  * @param userId 検索するユーザーのID
- * @returns ユーザーエンティティ、見つからない場合はnull
+ * @returns ユーザープロフィールDTO、見つからない場合はnull
  */
-export const getUserProfileById = async (userId: number): Promise<model.UserProfileResponse | null> => {
+export const getUserProfileById = async (userId: number): Promise<UserResponseDto | null> => {
     const userRepository = AppDataSource.getRepository(User);
-    const zipCodeTranslation = AppDataSource.getRepository(ZipCodeTranslation);
 
-    // ユーザーをIDで検索。関連エンティティである 'address' も一緒に取得する
-    const user = await userRepository.findOne({
+    // 1. 単一のクエリで、変換に必要なネストされた関連エンティティを全て取得
+    const userEntity = await userRepository.findOne({
         where: { id: userId },
         relations: {
-            address: true, // Userエンティティのaddressプロパティを読み込む
-            language: true, // UserエンティティのlanguageIdプロパティを読み込む
+            language: true,
+            address: {
+                zipCode: {
+                    translations: {
+                        language: true, // 翻訳の言語コードを比較するために必要
+                    },
+                },
+            },
         },
-    })
+    });
 
-    if (!user) {
+    if (!userEntity) {
         // ユーザーが見つからない場合はnullを返す
         return null;
     }
 
-    const address = await zipCodeTranslation.findOne({
-        where: { zipCode: user?.address?.zipCode },
-        relations: ['zipCode'], // ZipCodeTranslationエンティティのzipCodeプロパティを読み込む
-    })
-    const userData: model.UserProfileResponse = {
-        id: user.id, // ユーザーID
-        // password: user!.password,
-        email: user!.email,
-        address: {
-            id: user!.address!.addressId,
-            "postal-code": address!.zipCode.zip_code, // 住所の郵便番号
-            city: address!.city,
-            ward: address!.ward,
-            town: address!.town,
-            chom: user!.address!.chom,
-            street: user!.address!.street,
-            inf: user!.address!.inf,
-        },
-        language: {
-            id: user!.language!.id,
-            name: user!.language!.name,
-            code: user!.language!.code,
-        },
-    };
-    return userData;
+    // console.log('--- getUserProfileByIdの中身 ---');
+    // console.log('取得したUserエンティティ:', JSON.stringify(userEntity, null, 2));
+    // console.log('address:', userEntity.address);
+    // console.log('address.zipCode:', userEntity.address?.zipCode);
+
+    // 2. 取得したエンティティをDTOに変換して返す
+    // 複雑なマッピングは UserResponseDto 内の @Transform が自動で処理する
+    return plainToInstance(UserResponseDto, userEntity, {
+        excludeExtraneousValues: true, // DTOに @Expose() が無いプロパティは除外
+    });
 };
+
+// /**
+//  * IDでユーザーを検索し、プロフィール情報（住所も含む）を返す
+//  * @param userId 検索するユーザーのID
+//  * @returns ユーザーエンティティ、見つからない場合はnull
+//  */
+// export const getUserProfileById = async (userId: number): Promise<model.UserProfileResponse | null> => {
+//     const userRepository = AppDataSource.getRepository(User);
+//     const zipCodeTranslation = AppDataSource.getRepository(ZipCodeTranslation);
+
+//     // ユーザーをIDで検索。関連エンティティである 'address' も一緒に取得する
+//     const user = await userRepository.findOne({
+//         where: { id: userId },
+//         relations: {
+//             address: true, // Userエンティティのaddressプロパティを読み込む
+//             language: true, // UserエンティティのlanguageIdプロパティを読み込む
+//         },
+//     })
+
+//     if (!user) {
+//         // ユーザーが見つからない場合はnullを返す
+//         return null;
+//     }
+
+//     const address = await zipCodeTranslation.findOne({
+//         where: { zipCode: user?.address?.zipCode },
+//         relations: ['zipCode'], // ZipCodeTranslationエンティティのzipCodeプロパティを読み込む
+//     })
+//     const userData: model.UserProfileResponse = {
+//         id: user.id, // ユーザーID
+//         // password: user!.password,
+//         email: user!.email,
+//         address: {
+//             id: user!.address!.addressId,
+//             "postal-code": address!.zipCode.zip_code, // 住所の郵便番号
+//             city: address!.city,
+//             ward: address!.ward,
+//             town: address!.town,
+//             chom: user!.address!.chom,
+//             street: user!.address!.street,
+//             inf: user!.address!.inf,
+//         },
+//         language: {
+//             id: user!.language!.id,
+//             name: user!.language!.name,
+//             code: user!.language!.code,
+//         },
+//     };
+//     return userData;
+// };
 
 // ユーザー情報更新APIのリクエストボディの型
 export interface UserUpdateRequest {
@@ -180,7 +222,7 @@ export interface UserUpdateRequest {
  * @param updateData 更新するデータ
  * @returns 更新後のユーザー情報
  */
-export const updateUserProfile = async (userId: number, updateData: UserUpdateRequest): Promise<model.UserProfileResponse | null> => {
+export const updateUserProfile = async (userId: number, updateData: UserUpdateRequest): Promise<UserResponseDto | null> => {
     const userRepository = AppDataSource.getRepository(User);
     const addressRepository = AppDataSource.getRepository(Address);
     const languageRepository = AppDataSource.getRepository(Language);
