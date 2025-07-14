@@ -10,6 +10,7 @@ import {
   CreateDateColumn
 } from 'typeorm';
 import { User } from './User';
+import { Manual } from './Manual';
 
 @Entity('HISTORY')
 export class History {
@@ -22,11 +23,18 @@ export class History {
   @JoinColumn({ name: 'USER_NO' })
   userId!: number;
 
-  @Column({ type: 'varchar', name: 'NAME', length: 255, nullable: false })
-  name!: string;
+  // @Column({ type: 'varchar', name: 'NAME', length: 255, nullable: false })
+  // name!: string;
 
-  @Column({ type: 'varchar', name: 'J_TYPE', length: 60, nullable: true })
-  type!: string; // 判別したごみの種類
+  // @Column({ type: 'varchar', name: 'J_TYPE', length: 60, nullable: true })
+  // type!: string; // 判別したごみの種類
+
+  // NAME と J_TYPE のカラムは削除する
+  @ManyToOne(() => Manual, (manual) => manual.histories, { 
+    nullable: false 
+  }) // 履歴は必ずマニュアルと紐づく
+  @JoinColumn({ name: 'manual_id', referencedColumnName: 'id', foreignKeyConstraintName: 'FK_history_to_manual' }) // DB上の外部キーカラム名
+  manual!: Manual;
 
   @CreateDateColumn({ type: 'datetime', name: 'J_DATE'})
   Date!: Date; // 判別した日付時間
