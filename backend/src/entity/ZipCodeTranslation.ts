@@ -16,11 +16,17 @@ export class ZipCodeTranslation {
     @Column({ type: 'varchar', length: 100 })
     town!: string;
 
-    @ManyToOne(() => ZipCode, (zipCode) => zipCode.translations)
-    @JoinColumn({ name: 'zip_code' })
+    @ManyToOne(() => ZipCode, (zipCode) => zipCode.translations, {
+        nullable: false, // DBがNOT NULLなのでfalseを指定
+        onDelete: 'CASCADE', // DBの制約に合わせる
+    })
+    @JoinColumn({ name: 'zip_code', referencedColumnName: 'zip_code', foreignKeyConstraintName: 'FK_translation_to_zipcode' })
     zipCode!: ZipCode;
 
-    @ManyToOne(() => Language)
-    @JoinColumn({ name: 'language_id' })
+    @ManyToOne(() => Language, {
+        nullable: false, // DBがNOT NULLなのでfalseを指定
+        onDelete: 'RESTRICT', // DBの制約に合わせる
+    })
+    @JoinColumn({ name: 'language_id', referencedColumnName: 'id', foreignKeyConstraintName: 'FK_translation_to_language' })
     language!: Language;
 }
