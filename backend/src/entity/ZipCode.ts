@@ -8,8 +8,11 @@ export class ZipCode {
     @PrimaryColumn({ type: 'char', length: 7 })
     zip_code!: string;
 
-    @ManyToOne(() => Area, (area) => area.zipCodes)
-    @JoinColumn({ name: 'area_id' })
+    @ManyToOne(() => Area, (area) => area.zipCodes, {
+        nullable: false, // DBがNOT NULLなのでfalseを指定
+        onDelete: 'RESTRICT', // DBの制約に合わせる
+    })
+    @JoinColumn({ name: 'area_id', referencedColumnName: 'id', foreignKeyConstraintName: 'FK_zipcode_to_area' })
     area!: Area;
 
     @OneToMany(() => ZipCodeTranslation, (translation) => translation.zipCode)
