@@ -9,7 +9,7 @@ export class Manual {
   id!: number;
 
   // --- ★ここを追加★ ---
-  @Column({ type: 'varchar', name: 'garbage_ja', length: 256, comment: 'AI検索用の日本語ゴミ名' })
+  @Column({ type: 'varchar', name: 'garbage_ja', length: 255, comment: 'AI検索用の日本語ゴミ名' })
   garbageJa!: string;
   // --------------------
 
