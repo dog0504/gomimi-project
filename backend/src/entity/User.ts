@@ -35,11 +35,11 @@ export class User {
   })
   email!: string; // メールアドレス
   
-  @ManyToOne(() => Address, (address) => address.addressId)
+  @ManyToOne(() => Address, (address) => address.user)
   @JoinColumn({ name: 'ADDRESS_ID' })
   address!: Address; // 多対1の関係に対応するプロパティを追加
 
-  @ManyToOne(() => Language, (language) => language.id, { nullable: false })
+  @ManyToOne(() => Language, (language) => language.users, { nullable: false })
   @JoinColumn({ name: 'LANGUAGE_ID' })
   language!: Language; // 多対1の関係に対応するプロパティを追加
 
