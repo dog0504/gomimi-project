@@ -28,11 +28,11 @@ export class Manual {
   @JoinColumn({ name: 'area_id', referencedColumnName: 'id', foreignKeyConstraintName: 'FK_manual_to_area' })
   area!: Area;
 
-  // @OneToMany(() => History, (history) => history.manual, {
-  //   cascade: true,
-  //   eager: true,
-  // })
-  // histories!: History[];
+  @OneToMany(() => History, (history) => history.manual, {
+    cascade: true,
+    eager: true,
+  })
+  histories!: History[];
 }
 
 // // src/entity/Manuals.ts
