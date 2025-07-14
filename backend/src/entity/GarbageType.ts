@@ -1,10 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, OneToMany, PrimaryColumn } from 'typeorm';
 import { GarbageTypeTranslation } from './GarbageTypeTranslation';
 import { CollectionSchedule } from './CollectionSchedule';
 
 @Entity({ name: 'GARBAGE_TYPE' })
 export class GarbageType {
-  @PrimaryGeneratedColumn({ name: 'GARBAGE_TYPE_ID' })
+  @PrimaryColumn({ name: 'GARBAGE_TYPE_ID' })
   id!: number;
 
   @OneToMany(() => GarbageTypeTranslation, (translation) => translation.typeId, {

@@ -16,7 +16,7 @@ export class GarbageTypeTranslation {
   @JoinColumn({ name: 'garbage_type_id', referencedColumnName: 'id', foreignKeyConstraintName: 'FK_translation_to_garbage_type' })
   typeId!: GarbageType;
 
-  @ManyToOne(() => Language, (Language) => Language.translations, { onDelete: 'CASCADE', nullable: false })
+  @ManyToOne(() => Language, { onDelete: 'CASCADE', nullable: false })
   @JoinColumn({ name: 'language_id', referencedColumnName: 'id', foreignKeyConstraintName: 'FK_garbage_type_translation_to_language' })
   languageId!: Language;
 }

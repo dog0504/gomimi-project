@@ -17,8 +17,8 @@ export class CollectionSchedule {
   @JoinColumn({ name: 'ADDRESS_ID' })
   address!: Address; // アドレスとの関係
 
-  @ManyToOne(() => GarbageType, (garbageType) => garbageType.id , { nullable: false, onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'GARBAGE_TYPE_ID' })
+  @ManyToOne(() => GarbageType, (garbageType) => garbageType.schedules , { nullable: false, onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'GARBAGE_TYPE_ID', foreignKeyConstraintName: 'FK_08a2eb9173aec43b0485778745c' })
   garbageType!: GarbageType; // ゴミの種類との関係
 
   @Column({ type: 'varchar', name: 'COLLECTION_DAY', length: 60, nullable: false })
