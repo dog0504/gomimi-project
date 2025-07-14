@@ -19,8 +19,11 @@ export class Address {
   @Column({ type: 'varchar', name: 'INF', length: 256, nullable: true })
   inf!: string;
 
-  @ManyToOne(() => ZipCode, (zipCode) => zipCode.addresses)
-  @JoinColumn({ name: 'zip_code' }) // 参照するカラム名を指定
+  @ManyToOne(() => ZipCode, (zipCode) => zipCode.addresses, {
+      nullable: false, // DBがNOT NULLなのでfalseを指定
+      onDelete: 'RESTRICT', // DBの制約に合わせる
+  })
+  @JoinColumn({ name: 'zip_code', referencedColumnName: 'zip_code', foreignKeyConstraintName: 'FK_address_to_zipcode' })
   zipCode!: ZipCode;
 
   @OneToMany(() => User, (user) => user.address)
