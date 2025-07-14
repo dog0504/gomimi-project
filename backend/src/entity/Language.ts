@@ -5,6 +5,7 @@ import {
     OneToMany 
 } from 'typeorm';
 import { User } from './User'; // Userエンティティをインポート
+import { GarbageTypeTranslation } from './GarbageTypeTranslation';
 
 @Entity('LANGUAGES') // テーブル名を指定
 export class Language {
@@ -19,6 +20,9 @@ export class Language {
 
     @OneToMany(() => User, (user) => user.language)
     users!: User[]; // Userエンティティとの1対多の関係を定義
+
+    @OneToMany(() => GarbageTypeTranslation, (translation) => translation.languageId)
+    translations!: GarbageTypeTranslation[]; // ゴミの種類翻訳との1対多
 }
 
 // サンプルデータ
