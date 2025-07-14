@@ -11,6 +11,7 @@ import { Area } from "./entity/Area";
 import { ZipCode } from "./entity/ZipCode";
 import { ZipCodeTranslation } from "./entity/ZipCodeTranslation";
 import { ManualTranslation } from './entity/ManualTranslation'; // 新しいエンティティのインポート
+import { GarbageTypeTranslation } from './entity/GarbageTypeTranslation';
 
 export const AppDataSource = new DataSource({
   type: 'mysql',
@@ -19,7 +20,7 @@ export const AppDataSource = new DataSource({
   username: 'root',
   password: 'root',
   database: 'gomimi',
-  entities: [User, History, Tification, Address, Manual, GarbageType, CollectionSchedule, Language, Area, ZipCode, ZipCodeTranslation, ManualTranslation],
+  entities: [User, History, Tification, Address, Manual, GarbageType, CollectionSchedule, Language, Area, ZipCode, ZipCodeTranslation, ManualTranslation, GarbageTypeTranslation],
   migrations: ["src/migration/*.ts"],
   synchronize: false, // ←これでテーブル自動作成
   logging: true,
