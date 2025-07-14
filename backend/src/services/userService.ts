@@ -4,6 +4,8 @@ import { Address } from "../entity/Address";
 import * as bcrypt from 'bcrypt';
 import { Language } from "../entity/Language";
 import { Not } from "typeorm"; // TypeORMのNot演算子をインポート
+import { ZipCodeTranslation } from "../entity/ZipCodeTranslation";
+import * as model from "../responseModel"
 
 // APIからの入力データ型を定義
 export interface UserCreationRequest {
@@ -120,8 +122,9 @@ export const authenticateUser = async (credentials: UserLoginRequest): Promise<U
  * @param userId 検索するユーザーのID
  * @returns ユーザーエンティティ、見つからない場合はnull
  */
-export const getUserProfileById = async (userId: number): Promise<User | null> => {
+export const getUserProfileById = async (userId: number): Promise<model.UserProfileResponse | null> => {
     const userRepository = AppDataSource.getRepository(User);
+    const zipCodeTranslation = AppDataSource.getRepository(ZipCodeTranslation);
 
     // ユーザーをIDで検索。関連エンティティである 'address' も一緒に取得する
     const user = await userRepository.findOne({
@@ -130,9 +133,38 @@ export const getUserProfileById = async (userId: number): Promise<User | null> =
             address: true, // Userエンティティのaddressプロパティを読み込む
             language: true, // UserエンティティのlanguageIdプロパティを読み込む
         },
-    });
+    })
 
-    return user;
+    if (!user) {
+        // ユーザーが見つからない場合はnullを返す
+        return null;
+    }
+
+    const address = await zipCodeTranslation.findOne({
+        where: { zipCode: user?.address?.zipCode },
+        relations: ['zipCode'], // ZipCodeTranslationエンティティのzipCodeプロパティを読み込む
+    })
+    const userData: model.UserProfileResponse = {
+        id: user.id, // ユーザーID
+        // password: user!.password,
+        email: user!.email,
+        address: {
+            id: user!.address!.addressId,
+            "postal-code": address!.zipCode.zip_code, // 住所の郵便番号
+            city: address!.city,
+            ward: address!.ward,
+            town: address!.town,
+            chom: user!.address!.chom,
+            street: user!.address!.street,
+            inf: user!.address!.inf,
+        },
+        language: {
+            id: user!.language!.id,
+            name: user!.language!.name,
+            code: user!.language!.code,
+        },
+    };
+    return userData;
 };
 
 // ユーザー情報更新APIのリクエストボディの型
@@ -148,7 +180,7 @@ export interface UserUpdateRequest {
  * @param updateData 更新するデータ
  * @returns 更新後のユーザー情報
  */
-export const updateUserProfile = async (userId: number, updateData: UserUpdateRequest): Promise<User | null> => {
+export const updateUserProfile = async (userId: number, updateData: UserUpdateRequest): Promise<model.UserProfileResponse | null> => {
     const userRepository = AppDataSource.getRepository(User);
     const addressRepository = AppDataSource.getRepository(Address);
     const languageRepository = AppDataSource.getRepository(Language);

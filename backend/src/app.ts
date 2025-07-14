@@ -19,10 +19,11 @@ import * as ScheduleService from './services/scheduleService';
 import { protect } from './middleware/authMiddleware';
 import * as ManualService from './services/manualService';
 import * as HistoryService from './services/historyService';
-import { findAddressesByPostalCode } from './services/addressService';
+// import { findAddressesByPostalCode } from './services/addressService';
 import { getAllLanguages } from './services/languageService';
 import { identifyGarbageFromImage } from './services/garbageService';
-import { addHistoryForUser } from './services/historyService';
+// import { addHistoryForUser } from './services/historyService';
+import { importEnglishTranslations } from './import-english-translations';
 
 // アップロードされたファイルをメモリ上に一時保存する設定
 const upload = multer({ storage: multer.memoryStorage() });
@@ -179,11 +180,12 @@ apiRouter.get('/users/me', protect, async (req, res) => {
 
         // APIのレスポンスにパスワードを含めないように、除外する
         // DBの'languageId'プロパティを、API仕様の'language'プロパティにマッピングする
-        const { password, gAccount, ...restOfUser } = userProfile as User;
-        const responseObject = {
-            ...restOfUser,
-        };
-        res.status(200).json(responseObject);
+        // const { password, gAccount, ...restOfUser } = userProfile as User;
+        // const responseObject = {
+        //     ...restOfUser,
+        // };
+        // res.status(200).json(responseObject);
+        res.status(200).json(userProfile);
         
     } catch (error) {
         console.error('Failed to get user profile:', error);
@@ -225,11 +227,12 @@ apiRouter.put('/users/me', protect, async (req, res) => {
         }
 
         // レスポンスからパスワードを除外
-        const { password, gAccount, ...restOfUser } = updatedUser as User;
-        const responseObject = {
-            ...restOfUser,
-        };
-        res.status(200).json(responseObject);
+        // const { password, gAccount, ...restOfUser } = updatedUser as User;
+        // const responseObject = {
+        //     ...restOfUser,
+        // };
+        // res.status(200).json(responseObject);
+        res.status(200).json(updatedUser);
 
     } catch (error) {
         if (error instanceof Error) {
@@ -284,23 +287,23 @@ apiRouter.delete('/users/me', protect, async (req, res) => {
  * @apiGroup BinDays
  * @apiHeader {String} Authorization Bearerトークン
  */
-apiRouter.get('/users/me/bin-days', protect, async (req, res) => {
-    logWithTimestamp('[INFO] Received request to get user bin days:', req.user); // 修正済み
-    const userId = req.user?.userId;
+// apiRouter.get('/users/me/bin-days', protect, async (req, res) => {
+//     logWithTimestamp('[INFO] Received request to get user bin days:', req.user); // 修正済み
+//     const userId = req.user?.userId;
 
-    if (userId) {
-        try {
-            const binDays = await ScheduleService.getBinDaysForUser(userId);
-            res.status(200).json(binDays);
-        } catch (error) {
-            console.error('Failed to get bin days:', error);
-            res.status(500).json({ message: 'Internal Server Error' });
-        }
-    } else {
-        // このケースは通常ミドルウェアで弾かれる
-        res.status(401).json({ message: 'Unauthorized.' });
-    }
-});
+//     if (userId) {
+//         try {
+//             const binDays = await ScheduleService.getBinDaysForUser(userId);
+//             res.status(200).json(binDays);
+//         } catch (error) {
+//             console.error('Failed to get bin days:', error);
+//             res.status(500).json({ message: 'Internal Server Error' });
+//         }
+//     } else {
+//         // このケースは通常ミドルウェアで弾かれる
+//         res.status(401).json({ message: 'Unauthorized.' });
+//     }
+// });
 
 /**
  * @api {get} /manuals すべてのゴミ名とIDを取得
@@ -409,27 +412,27 @@ apiRouter.get('/manuals/:manualId', async (req, res) => {
  * @apiParam {Number} [limit=20] 取得件数
  * @apiParam {Number} [offset=0] 開始位置
  */
-apiRouter.get('/users/me/histories', protect, async (req, res) => {
-    logWithTimestamp('[INFO] Received request to get user histories:', req.user); // 修正済み
-    const userId = req.user?.userId;
+// apiRouter.get('/users/me/histories', protect, async (req, res) => {
+//     logWithTimestamp('[INFO] Received request to get user histories:', req.user); // 修正済み
+//     const userId = req.user?.userId;
 
-    if (userId) {
-        // クエリからlimitとoffsetを取得し、数値に変換。未指定の場合はデフォルト値を使用。
-        const limit = parseInt(req.query.limit as string, 10) || 20;
-        const offset = parseInt(req.query.offset as string, 10) || 0;
+//     if (userId) {
+//         // クエリからlimitとoffsetを取得し、数値に変換。未指定の場合はデフォルト値を使用。
+//         const limit = parseInt(req.query.limit as string, 10) || 20;
+//         const offset = parseInt(req.query.offset as string, 10) || 0;
 
-        try {
-            const histories = await HistoryService.getHistoriesForUser(userId, limit, offset);
-            res.status(200).json(histories);
-        } catch (error) {
-            console.error('Failed to get user histories:', error);
-            res.status(500).json({ message: 'Internal Server Error' });
-        }
-    } else {
-        // このケースは通常ミドルウェアで弾かれる
-        res.status(401).json({ message: 'Unauthorized.' });
-    }
-});
+//         try {
+//             const histories = await HistoryService.getHistoriesForUser(userId, limit, offset);
+//             res.status(200).json(histories);
+//         } catch (error) {
+//             console.error('Failed to get user histories:', error);
+//             res.status(500).json({ message: 'Internal Server Error' });
+//         }
+//     } else {
+//         // このケースは通常ミドルウェアで弾かれる
+//         res.status(401).json({ message: 'Unauthorized.' });
+//     }
+// });
 
 /**
  * @api {post} /users/me/histories ユーザーの識別履歴を追加
@@ -439,28 +442,28 @@ apiRouter.get('/users/me/histories', protect, async (req, res) => {
  * @apiBody {String} name 識別されたゴミの名前
  * @apiBody {String} [type] 識別されたゴミの分別区分
  */
-apiRouter.post('/users/me/histories', protect, async (req, res) => {
-    logWithTimestamp('[INFO] Received request to add user history:', req.body); // 修正済み
-    const userId = req.user?.userId;
-    const { name, type } = req.body;
+// apiRouter.post('/users/me/histories', protect, async (req, res) => {
+//     logWithTimestamp('[INFO] Received request to add user history:', req.body); // 修正済み
+//     const userId = req.user?.userId;
+//     const { name, type } = req.body;
 
-    if (userId) {
-        // API仕様に基づき、nameが必須
-        if (typeof name === 'string' && name.trim() !== '') {
-            try {
-                const newHistory = await HistoryService.addHistoryForUser(userId, { name: name.trim(), type: type });
-                res.status(201).json(newHistory);
-            } catch (error) {
-                console.error('Failed to add user history:', error);
-                res.status(500).json({ message: 'Internal Server Error' });
-            }
-        } else {
-            res.status(400).json({ message: 'リクエストボディに "name" (文字列) は必須です。' });
-        }
-    } else {
-        res.status(401).json({ message: 'Unauthorized.' });
-    }
-});
+//     if (userId) {
+//         // API仕様に基づき、nameが必須
+//         if (typeof name === 'string' && name.trim() !== '') {
+//             try {
+//                 const newHistory = await HistoryService.addHistoryForUser(userId, { name: name.trim(), type: type });
+//                 res.status(201).json(newHistory);
+//             } catch (error) {
+//                 console.error('Failed to add user history:', error);
+//                 res.status(500).json({ message: 'Internal Server Error' });
+//             }
+//         } else {
+//             res.status(400).json({ message: 'リクエストボディに "name" (文字列) は必須です。' });
+//         }
+//     } else {
+//         res.status(401).json({ message: 'Unauthorized.' });
+//     }
+// });
 
 /**
  * @api {get} /addresses/search 郵便番号から住所を検索
@@ -468,30 +471,30 @@ apiRouter.post('/users/me/histories', protect, async (req, res) => {
  * @apiGroup Addresses
  * @apiParam {String} postalCode 検索する郵便番号
  */
-apiRouter.get('/addresses/search', async (req, res) => {
-    logWithTimestamp('[INFO] Received request to search addresses by postal code:', req.query); // 修正済み
-    const postalCode = req.query.postalCode as string;
+// apiRouter.get('/addresses/search', async (req, res) => {
+//     logWithTimestamp('[INFO] Received request to search addresses by postal code:', req.query); // 修正済み
+//     const postalCode = req.query.postalCode as string;
 
-    // postalCodeが存在し、空文字列でないことを確認
-    if (postalCode && postalCode.trim() !== '') {
-        try {
-            const addresses = await findAddressesByPostalCode(postalCode.trim());
-            if (addresses.length > 0) {
-                // 住所が見つかった場合
-                res.status(200).json(addresses);
-            } else {
-                // API仕様書に従い、見つからなかった場合は404エラー
-                res.status(404).json({ message: 'Address not found.' });
-            }
-        } catch (error) {
-            console.error('Failed to search addresses:', error);
-            res.status(500).json({ message: 'Internal Server Error' });
-        }
-    } else {
-        // postalCodeが提供されていない場合は400エラー
-        res.status(400).json({ message: 'クエリパラメータ "postalCode" は必須です。' });
-    }
-});
+//     // postalCodeが存在し、空文字列でないことを確認
+//     if (postalCode && postalCode.trim() !== '') {
+//         try {
+//             const addresses = await findAddressesByPostalCode(postalCode.trim());
+//             if (addresses.length > 0) {
+//                 // 住所が見つかった場合
+//                 res.status(200).json(addresses);
+//             } else {
+//                 // API仕様書に従い、見つからなかった場合は404エラー
+//                 res.status(404).json({ message: 'Address not found.' });
+//             }
+//         } catch (error) {
+//             console.error('Failed to search addresses:', error);
+//             res.status(500).json({ message: 'Internal Server Error' });
+//         }
+//     } else {
+//         // postalCodeが提供されていない場合は400エラー
+//         res.status(400).json({ message: 'クエリパラメータ "postalCode" は必須です。' });
+//     }
+// });
 
 /**
  * @api {get} /languages 利用可能な言語のリストを取得
@@ -519,47 +522,48 @@ apiRouter.get('/languages', async (req, res) => {
  * @apiGroup Garbage
  * @apiHeader {String} Authorization Bearerトークン
  */
-apiRouter.post('/garbage/identify', protect, upload.single('image'), async (req, res) => {
-    const userId = req.user?.userId;
+// apiRouter.post('/garbage/identify', protect, upload.single('image'), async (req, res) => {
+//     const userId = req.user?.userId;
 
-    if (userId) {
-        if (req.file) {
-        try {
-            // 1. 外部APIを呼び出してゴミの識別候補リストを取得
-            const identificationResults = await identifyGarbageFromImage(req.file.buffer);
+//     if (userId) {
+//         if (req.file) {
+//         try {
+//             // 1. 外部APIを呼び出してゴミの識別候補リストを取得
+//             const identificationResults = await identifyGarbageFromImage(req.file.buffer);
 
-            if (identificationResults && identificationResults.results.length > 0) {
+//             if (identificationResults && identificationResults.results.length > 0) {
             
-            // 2. 識別結果リストの各項目について、履歴保存処理を行う
-            for (const result of identificationResults.results) {
-                // 3. 識別名でマニュアルを検索
-                const manual = await ManualService.findManualByName(result.name);
+//             // 2. 識別結果リストの各項目について、履歴保存処理を行う
+//             for (const result of identificationResults.results) {
+//                 // 3. 識別名でマニュアルを検索
+//                 const manual = await ManualService.findManualByName(result.name);
                 
-                // 4. マニュアルが見つかればそのtypeを、なければnullを履歴のtypeとする
-                const typeForHistory = manual ? manual.type : null;
+//                 // 4. マニュアルが見つかればそのtypeを、なければnullを履歴のtypeとする
+//                 // const typeForHistory = manual ? manual.type : null;
+//                 const typeForHistory = null;
                 
-                // 5. 履歴を保存
-                await addHistoryForUser(userId, { name: result.name, type: typeForHistory });
-            }
-            // --- ★ここまで ---
+//                 // 5. 履歴を保存
+//                 await addHistoryForUser(userId, { name: result.name, type: typeForHistory });
+//             }
+//             // --- ★ここまで ---
 
-            // 6. API仕様書通り、識別結果のリストをクライアントにレスポンスとして返す
-            res.status(200).json(identificationResults);
+//             // 6. API仕様書通り、識別結果のリストをクライアントにレスポンスとして返す
+//             res.status(200).json(identificationResults);
 
-            } else {
-            res.status(404).json({ message: 'Could not identify the garbage from the image.' });
-            }
-        } catch (error) {
-            console.error('Failed during garbage identification process:', error);
-            res.status(503).json({ message: (error as Error).message });
-        }
-        } else {
-        res.status(400).json({ message: 'No image provided.' });
-        }
-    } else {
-        res.status(401).json({ message: 'Unauthorized.' });
-    }
-});
+//             } else {
+//             res.status(404).json({ message: 'Could not identify the garbage from the image.' });
+//             }
+//         } catch (error) {
+//             console.error('Failed during garbage identification process:', error);
+//             res.status(503).json({ message: (error as Error).message });
+//         }
+//         } else {
+//         res.status(400).json({ message: 'No image provided.' });
+//         }
+//     } else {
+//         res.status(401).json({ message: 'Unauthorized.' });
+//     }
+// });
 
 /**
  * @api {post} /garbage/identify/test 画像からゴミを識別 (テスト用)
@@ -633,9 +637,9 @@ apiRouter.get('/manuals/search/exact', async (req, res) => {
             // マニュアルが見つかった場合、API仕様の形式にマッピングして返す
             const responseBody = {
                 id: manual.id,
-                name: manual.garbage,
-                category: manual.type,
-                remarks: manual.contents
+                // name: manual.garbage,
+                // category: manual.type,
+                // remarks: manual.contents
             };
             res.status(200).json(responseBody);
         } else {
@@ -657,6 +661,7 @@ initDataSource()
     .then(async () => {
         // データの登録
         // await seedDatabase();
+        // importEnglishTranslations();
         logWithTimestamp("データベースの初期化が完了しました。");
 
         // 現在の時間を取得してログに出力
