@@ -25,6 +25,10 @@ import { identifyGarbageFromImage } from './services/garbageService';
 // import { addHistoryForUser } from './services/historyService';
 import { importEnglishTranslations } from './import-english-translations';
 
+import { handleError, ErrorNames, createAppError } from './errorHandling'; // エラーハンドリングの関数をインポート
+import { generateAccessToken } from './utils/jwt';
+import { Request, Response, NextFunction } from "express";
+
 // アップロードされたファイルをメモリ上に一時保存する設定
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -52,6 +56,11 @@ const apiRouter = express.Router();
 // // ルーティングの設定
 app.use('/api/v1', apiRouter);
 
+// ルート定義の後にエラーハンドリングミドルウェアを追加
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+    handleError(err, res);
+});
+
 // 指定したポートでHTTPサーバーを起動し、起動成功時にメッセージを出力
 
 
@@ -59,54 +68,35 @@ apiRouter.get('/', (req, res) => {
     res.send('Hello World!');
 });
 
+
 /**
  * @api {post} /auth/register ユーザー登録
  * @apiName RegisterUser
  * @apiGroup Auth
  */
-apiRouter.post('/auth/register', async (req, res) => {
-    logWithTimestamp('[INFO] Received registration request:', req.body); // 修正済み
-
-    if (!req.body) {
-        res.status(400).json({ message: 'Request body is missing or invalid JSON.' });
-    }
-
-    const userData: UserService.UserCreationRequest = req.body; // 変更: UserServiceから参照
-
-    // 簡単な入力値検証
-    if (!userData.email || !userData.password || !userData.languageId || !userData.addressId) {
-        res.status(400).json({ message: 'Invalid input.' });
-    }
-
+apiRouter.post('/auth/register', async (req, res, next) => {
     try {
+        logWithTimestamp('[INFO] Received registration request:', req.body);
+
+        if (!req.body) throw createAppError('Request body is missing or invalid JSON.', ErrorNames.BadRequest);
+        const userData: UserService.UserCreationRequest = req.body; // 変更: UserServiceから参照
+
+        // 簡単な入力値検証
+        if (!userData.email || !userData.password || !userData.languageId || !userData.addressId) throw createAppError('Email, password, languageId, and addressId are required.', ErrorNames.BadRequest);
+
         // ユーザー作成サービスを呼び出す
         const newUser = await UserService.createUser(userData); // 変更: UserServiceから参照
 
         // ユーザー登録成功後、JWTを生成
-        const accessToken = jwt.sign(
-            { userId: newUser.id, email: newUser.email },
-            JWT_SECRET,
-            { expiresIn: '1h' } // トークンの有効期限 (例: 1時間)
-        );
+        const accessToken = generateAccessToken(newUser);
 
         // API仕様書通り、アクセストークンを返す
         res.status(201).json({ accessToken });
 
     } catch (error) {
-        if (error instanceof Error) {
-        // サービスで設定したエラー名でハンドリングを分岐
-        if (error.name === 'ConflictError') {
-            console.error('User registration failed:', error);
-            res.status(409).json({ message: error.message }); // 409 Conflict
-        }
-        if (error.name === 'BadRequestError') {
-            console.error('User registration failed:', error);
-            res.status(400).json({ message: error.message }); // 400 Bad Request
-        }
-        }
         // その他の予期せぬエラー
         console.error('Registration failed:', error);
-        res.status(500).json({ message: 'Internal Server Error' });
+        next(error); // エラーを次のミドルウェアに渡す
     }
 });
 
@@ -115,40 +105,27 @@ apiRouter.post('/auth/register', async (req, res) => {
  * @apiName LoginUser
  * @apiGroup Auth
  */
-apiRouter.post('/auth/login', async (req, res) => {
-    logWithTimestamp('[INFO] Received login request:', req.body); // 修正済み
-    const credentials: UserService.UserLoginRequest = req.body;
-
-    // 入力値検証
-    if (!credentials.email || !credentials.password) {
-        console.warn('Login request missing email or password:', credentials);
-        res.status(400).json({ message: 'Email and password are required.' });
-    }
-
+apiRouter.post('/auth/login', async (req, res, next) => {
     try {
+        logWithTimestamp('[INFO] Received login request:', req.body);
+        const credentials: UserService.UserLoginRequest = req.body;
+
+        // 入力値検証
+        if (!credentials.email || !credentials.password) throw createAppError('Email and password are required.', ErrorNames.BadRequest);
+    
         // 認証サービスを呼び出す
         const user = await UserService.authenticateUser(credentials);
 
         // 認証に成功したら、新しいJWTを生成
-        const accessToken = jwt.sign(
-            { userId: user.id, email: user.email },
-            JWT_SECRET,
-            { expiresIn: '1h' } // 有効期限
-        );
+        const accessToken = generateAccessToken(user);
 
         // API仕様書通り、アクセストークンを返す
         console.log('[INFO] Login successful, returning access token.');
         res.status(200).json({ accessToken });
 
     } catch (error) {
-        // 認証失敗のエラーハンドリング
-        if (error instanceof Error && error.name === 'AuthError') {
-            console.warn('Login failed:', error);
-            res.status(401).json({ message: 'Unauthorized.' });
-        }
-        // その他の予期せぬエラー
         console.error('Login failed:', error);
-        res.status(500).json({ message: 'Internal Server Error' });
+        next(error); // エラーを次のミドルウェアに渡す
     }
 });
 
@@ -158,38 +135,21 @@ apiRouter.post('/auth/login', async (req, res) => {
  * @apiGroup Users
  * @apiHeader {String} Authorization Bearerトークン (例: Bearer eyJhbGci...)
  */
-apiRouter.get('/users/me', protect, async (req, res) => {
-    //                  ^^^^^^^
-    // protectミドルウェアをここに追加。これ以降の処理は認証成功した場合のみ実行される。
-    logWithTimestamp('[INFO] Received request to get user profile:', req.user); // 修正済み
+apiRouter.get('/users/me', protect, async (req, res, next) => {
     try {
+        logWithTimestamp('[INFO] Received request to get user profile:', req.user);
         // ミドルウェアによって追加された `req.user` からユーザーIDを取得
         const userId = req.user!.userId;
 
-        if (!userId) {
-            // 基本的にミドルウェアで弾かれるが、念のためチェック
-            console.warn('Unauthorized access attempt without userId:', req.user);
-            res.status(401).json({ message: 'Unauthorized.' });
-        }
+        if (!userId) throw createAppError('Unauthorized', ErrorNames.Auth);
 
         const userProfile = await UserService.getUserProfileById(userId);
 
-        if (!userProfile) {
-            res.status(404).json({ message: 'User not found.' });
-        }
-
-        // APIのレスポンスにパスワードを含めないように、除外する
-        // DBの'languageId'プロパティを、API仕様の'language'プロパティにマッピングする
-        // const { password, gAccount, ...restOfUser } = userProfile as User;
-        // const responseObject = {
-        //     ...restOfUser,
-        // };
-        // res.status(200).json(responseObject);
         res.status(200).json(userProfile);
         
     } catch (error) {
         console.error('Failed to get user profile:', error);
-        res.status(500).json({ message: 'Internal Server Error' });
+        next(error); // エラーを次のミドルウェアに渡す
     }
 });
 
@@ -203,51 +163,26 @@ apiRouter.get('/users/me', protect, async (req, res) => {
  * @apiBody {Object} [address] 新しい住所
  * @apiBody {Number} address.id 新しい住所のID
  */
-apiRouter.put('/users/me', protect, async (req, res) => {
-    logWithTimestamp('[INFO] Received request to update user profile:', req.body); // 修正済み
-    const userId = req.user!.userId;
-    const updateData: UserService.UserUpdateRequest = req.body;
-
-    if (!userId) {
-        // ミドルウェアで弾かれるはずだが念のため
-        res.status(401).json({ message: 'Unauthorized.' });
-    }
-
-    // リクエストボディが空の場合はエラー
-    if (Object.keys(updateData).length === 0) {
-        res.status(400).json({ message: 'No update data provided.' });
-    }
-
+apiRouter.put('/users/me', protect, async (req, res, next) => {
     try {
+        logWithTimestamp('[INFO] Received request to update user profile:', req.body); // 修正済み
+        console.log('[DEBUG] Request user:', req.user); // デバッグ用ログ
+
+        const userId = req.user!.userId;
+        const updateData: UserService.UserUpdateRequest = req.body;
+
+        // ユーザーIDが存在しない場合はエラー
+        if (!userId) throw createAppError('Unauthorized', ErrorNames.Auth);
+
+        // リクエストボディが空の場合はエラー
+        if (Object.keys(updateData).length === 0) throw createAppError('No update data provided.', ErrorNames.BadRequest);
+
         const updatedUser = await UserService.updateUserProfile(userId, updateData);
 
-        if (!updatedUser) {
-            // サービス内でエラーがスローされるため、通常ここには来ない
-            res.status(404).json({ message: 'User not found after update.' });
-        }
-
-        // レスポンスからパスワードを除外
-        // const { password, gAccount, ...restOfUser } = updatedUser as User;
-        // const responseObject = {
-        //     ...restOfUser,
-        // };
-        // res.status(200).json(responseObject);
         res.status(200).json(updatedUser);
-
     } catch (error) {
-        if (error instanceof Error) {
-            if (error.name === 'NotFoundError') {
-                res.status(404).json({ message: error.message });
-            }
-            if (error.name === 'ConflictError') {
-                res.status(409).json({ message: error.message }); // 既に存在する
-            }
-            if (error.name === 'BadRequestError') {
-                res.status(400).json({ message: error.message }); // 不正なリクエスト
-            }
-        }
         console.error('Failed to update user profile:', error);
-        res.status(500).json({ message: 'Internal Server Error' });
+        next(error); // エラーを次のミドルウェアに渡す
     }
 });
 
@@ -257,27 +192,21 @@ apiRouter.put('/users/me', protect, async (req, res) => {
  * @apiGroup Users
  * @apiHeader {String} Authorization Bearerトークン
  */
-apiRouter.delete('/users/me', protect, async (req, res) => {
-    logWithTimestamp('[INFO] Received request to delete user account:', req.user); // 修正済み
-    const userId = req.user?.userId;
+apiRouter.delete('/users/me', protect, async (req, res, next) => {
+    try {
+        logWithTimestamp('[INFO] Received request to delete user account:', req.user); // 修正済み
+        const userId = req.user?.userId;
 
-    if (userId) {
-        try {
-        const wasDeleted = await UserService.deleteUser(userId);
-        if (wasDeleted) {
-            // API仕様書に従い、成功時はボディなしの204を返す
-            res.status(204).send();
-        } else {
-            // サービスがfalseを返した場合（＝ユーザーが見つからなかった）
-            res.status(404).json({ message: 'User not found.' });
-        }
-        } catch (error) {
-        console.error('Failed to delete user:', error);
-        res.status(500).json({ message: 'Internal Server Error' });
-        }
-    } else {
-        // このケースは通常ミドルウェアで弾かれるが、念のため記述
-        res.status(401).json({ message: 'Unauthorized.' });
+        // ユーザーIDが存在しない場合はエラー
+        if (!userId) throw createAppError('Unauthorized', ErrorNames.Auth);
+
+        // ユーザー削除サービスを呼び出す
+        await UserService.deleteUser(userId);
+
+        res.status(204).send(); // 削除成功時は204 No Contentを返す
+    } catch (error) {
+        console.error('Failed to delete user account:', error);
+        next(error); // エラーを次のミドルウェアに渡す
     }
 });
 
@@ -676,3 +605,4 @@ initDataSource()
     .catch((error) => {
         logWithTimestamp(`Error during Data Source initialization: ${error}`);
     });
+
