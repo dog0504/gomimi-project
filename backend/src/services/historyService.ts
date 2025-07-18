@@ -21,20 +21,8 @@ interface HistoryResponse {
  * @param offset 取得を開始する位置
  * @returns HistoryResponseオブジェクトの配列
  */
-export const getHistoriesForUser = async (userId: number, limit: number, offset: number): Promise<HistoryResponse[]> => {
+export const getHistoriesForUser = async (userId: number, langId: number, limit: number, offset: number): Promise<HistoryResponse[]> => {
     const historyRepository = AppDataSource.getRepository(History);
-    const userRepository = AppDataSource.getRepository(User);
-
-    // ユーザーが存在するか確認
-    const user = await userRepository.findOne({
-        where: { id: userId },
-        relations: { language: true },
-    });
-
-    if (!user) throw createAppError('User not found', ErrorNames.NotFound);
-    
-    // TODO: 言語が日本語(1)と英語(2)以外の場合の処理を追加すること
-    const langId = user.language.id <= 2 ? user.language.id : 2;
 
     // 履歴を取得する際に、関連するマニュアル、その翻訳、言語も一緒に取得する
     const histories = await historyRepository.find({
