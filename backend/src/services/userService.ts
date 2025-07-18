@@ -242,5 +242,8 @@ export const getUser = async (userId: number): Promise<User | null> => {
     // ユーザーをIDで検索し、関連する言語と住所も取得
     return userRepository.findOne({
         where: { id: userId },
+        relations: {
+            language: true
+        }
     });
 }
