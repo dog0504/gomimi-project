@@ -216,23 +216,22 @@ apiRouter.delete('/users/me', protect, async (req, res, next) => {
  * @apiGroup BinDays
  * @apiHeader {String} Authorization Bearerトークン
  */
-// apiRouter.get('/users/me/bin-days', protect, async (req, res) => {
-//     logWithTimestamp('[INFO] Received request to get user bin days:', req.user); // 修正済み
-//     const userId = req.user?.userId;
+apiRouter.get('/users/me/bin-days', protect, async (req, res, next) => {
+    try {
+        logWithTimestamp('[INFO] Received request to get user bin days:', req.user); // 修正済み
+        const userId = req.user?.userId;
 
-//     if (userId) {
-//         try {
-//             const binDays = await ScheduleService.getBinDaysForUser(userId);
-//             res.status(200).json(binDays);
-//         } catch (error) {
-//             console.error('Failed to get bin days:', error);
-//             res.status(500).json({ message: 'Internal Server Error' });
-//         }
-//     } else {
-//         // このケースは通常ミドルウェアで弾かれる
-//         res.status(401).json({ message: 'Unauthorized.' });
-//     }
-// });
+        // ユーザーIDが存在しない場合はエラー
+        if (!userId) throw createAppError('Unauthorized', ErrorNames.Auth);
+
+        // ユーザーのゴミ収集日を取得
+        const binDays = await ScheduleService.getBinDaysForUser(userId);
+        res.status(200).json(binDays);
+    } catch (error) {
+        console.error('Failed to get bin days:', error);
+        next(error); // エラーを次のミドルウェアに渡す
+    }
+});
 
 /**
  * @api {get} /manuals すべてのゴミ名とIDを取得
@@ -341,27 +340,21 @@ apiRouter.get('/manuals/:manualId', async (req, res) => {
  * @apiParam {Number} [limit=20] 取得件数
  * @apiParam {Number} [offset=0] 開始位置
  */
-// apiRouter.get('/users/me/histories', protect, async (req, res) => {
-//     logWithTimestamp('[INFO] Received request to get user histories:', req.user); // 修正済み
-//     const userId = req.user?.userId;
-
-//     if (userId) {
-//         // クエリからlimitとoffsetを取得し、数値に変換。未指定の場合はデフォルト値を使用。
-//         const limit = parseInt(req.query.limit as string, 10) || 20;
-//         const offset = parseInt(req.query.offset as string, 10) || 0;
-
-//         try {
-//             const histories = await HistoryService.getHistoriesForUser(userId, limit, offset);
-//             res.status(200).json(histories);
-//         } catch (error) {
-//             console.error('Failed to get user histories:', error);
-//             res.status(500).json({ message: 'Internal Server Error' });
-//         }
-//     } else {
-//         // このケースは通常ミドルウェアで弾かれる
-//         res.status(401).json({ message: 'Unauthorized.' });
-//     }
-// });
+apiRouter.get('/users/me/histories', protect, async (req, res, next) => {
+    try {
+        logWithTimestamp('[INFO] Received request to get user histories:', req.user);
+        const userId = req.user?.userId;
+        if (!userId) throw createAppError('Unauthorized', ErrorNames.Auth);
+        // クエリからlimitとoffsetを取得し、数値に変換。未指定の場合はデフォルト値を使用。
+        const limit = parseInt(req.query.limit as string, 10) || 20;
+        const offset = parseInt(req.query.offset as string, 10) || 0;
+        const histories = await HistoryService.getHistoriesForUser(userId, limit, offset);
+        res.status(200).json(histories);
+    } catch (error) {
+        console.error('Failed to get user histories:', error);
+        next(error); // エラーを次のミドルウェアに渡す
+    }
+});
 
 /**
  * @api {post} /users/me/histories ユーザーの識別履歴を追加
@@ -371,28 +364,29 @@ apiRouter.get('/manuals/:manualId', async (req, res) => {
  * @apiBody {String} name 識別されたゴミの名前
  * @apiBody {String} [type] 識別されたゴミの分別区分
  */
-// apiRouter.post('/users/me/histories', protect, async (req, res) => {
-//     logWithTimestamp('[INFO] Received request to add user history:', req.body); // 修正済み
-//     const userId = req.user?.userId;
-//     const { name, type } = req.body;
+apiRouter.post('/users/me/histories', protect, async (req, res, next) => {
+    try {
+        logWithTimestamp('[INFO] Received request to add user history:', req.body);
+        const userId = req.user?.userId;
+        const { manualId } = req.body; // ボディからmanualIdを取得
 
-//     if (userId) {
-//         // API仕様に基づき、nameが必須
-//         if (typeof name === 'string' && name.trim() !== '') {
-//             try {
-//                 const newHistory = await HistoryService.addHistoryForUser(userId, { name: name.trim(), type: type });
-//                 res.status(201).json(newHistory);
-//             } catch (error) {
-//                 console.error('Failed to add user history:', error);
-//                 res.status(500).json({ message: 'Internal Server Error' });
-//             }
-//         } else {
-//             res.status(400).json({ message: 'リクエストボディに "name" (文字列) は必須です。' });
-//         }
-//     } else {
-//         res.status(401).json({ message: 'Unauthorized.' });
-//     }
-// });
+        // ユーザーIDが存在しない場合はエラー
+        if (!userId) throw createAppError('Unauthorized', ErrorNames.Auth);
+
+        // manualIdが提供されていない場合はエラー
+        if (!manualId) throw createAppError('manualId is required.', ErrorNames.BadRequest);
+
+        // 履歴を追加するサービスを呼び出す
+        const newHistory = await HistoryService.addHistoryForUser(userId, manualId, 1); // デフォルトの言語IDを1に設定
+
+        // 成功した場合は201 Createdを返す
+        res.status(201).json(newHistory);
+
+    } catch (error) {
+        console.error('Failed to add user history:', error);
+        next(error); // エラーを次のミドルウェアに渡す
+    }
+});
 
 /**
  * @api {get} /addresses/search 郵便番号から住所を検索
