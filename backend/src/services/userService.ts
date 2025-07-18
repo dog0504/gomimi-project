@@ -229,3 +229,18 @@ export const deleteUser = async (userId: number) => {
     // ユーザーを削除
     await userRepository.remove(userToDelete);
 };
+
+
+/**
+ * ユーザーIDを指定してユーザー情報を取得する
+ * @param userId ユーザーのID
+ * @returns ユーザーエンティティ、見つからない場合はnull
+ */
+export const getUser = async (userId: number): Promise<User | null> => {
+    const userRepository = AppDataSource.getRepository(User);
+    
+    // ユーザーをIDで検索し、関連する言語と住所も取得
+    return userRepository.findOne({
+        where: { id: userId },
+    });
+}
