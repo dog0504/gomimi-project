@@ -238,14 +238,20 @@ apiRouter.get('/users/me/bin-days', protect, async (req, res, next) => {
  * @apiName GetAllManualSummaries
  * @apiGroup Manuals
  */
-apiRouter.get('/manuals', async (req, res) => {
-    logWithTimestamp('[INFO] Received request to get all manual summaries.'); // 修正済み
+apiRouter.get('/manuals', protect, async (req, res, next) => {
     try {
-        const manuals = await ManualService.getAllManualSummaries();
+        logWithTimestamp('[INFO] Received request to get all manual summaries.');
+        const languageId = req.user?.language; // JWTから言語IDを取得
+
+        // 言語IDがトークンに含まれていない場合はエラー
+        if (!languageId) throw createAppError('Language ID not found in token.', ErrorNames.Auth);
+
+        // マニュアルの要約を取得
+        const manuals = await ManualService.getAllManualSummaries(languageId);
         res.status(200).json(manuals);
     } catch (error) {
         console.error('Failed to get manual summaries:', error);
-        res.status(500).json({ message: 'Internal Server Error' });
+        next(error); // エラーハンドラに渡す
     }
 });
 
@@ -255,23 +261,23 @@ apiRouter.get('/manuals', async (req, res) => {
  * @apiGroup Manuals
  * @apiParam {String} keyword 検索キーワード
  */
-apiRouter.get('/manuals/search', async (req, res) => {
-    logWithTimestamp('[INFO] Received request to search manuals by keyword:', req.query); // 修正済み
-    // クエリからkeywordを取得 (stringとして扱う)
-    const keyword = req.query.keyword as string;
+apiRouter.get('/manuals/search', protect, async (req, res, next) => {
+    try {
+        logWithTimestamp('[INFO] Received request to search manuals by keyword:', req.query); // 修正済み
 
-    // keywordが存在し、空文字列でないことを確認
-    if (keyword && keyword.trim() !== '') {
-        try {
-            const manuals = await ManualService.searchManualsByKeyword(keyword);
-            res.status(200).json(manuals);
-        } catch (error) {
-            console.error('Failed to search manuals:', error);
-            res.status(500).json({ message: 'Internal Server Error' });
-        }
-    } else {
-        // keywordが提供されていない、または空の場合は400エラー
-        res.status(400).json({ message: 'クエリパラメータ "keyword" は必須です。' });
+        const languageId = req.user?.language; // JWTから言語IDを取得
+        if (!languageId) throw createAppError('Unauthorized', ErrorNames.Auth);
+
+        // クエリからkeywordを取得 (stringとして扱う)
+        const keyword = req.query.keyword as string;
+        if (!keyword && keyword.trim() === '') throw createAppError('Keyword is required.', ErrorNames.BadRequest);
+
+        // マニュアルをキーワードで検索
+        const manuals = await ManualService.searchManualsByKeyword(keyword, languageId);
+        res.status(200).json(manuals);
+    } catch (error) {
+        console.error('Failed to search manuals by keyword:', error);
+        next(error); // エラーを次のミドルウェアに渡す
     }
 });
 
@@ -281,22 +287,28 @@ apiRouter.get('/manuals/search', async (req, res) => {
  * @apiGroup Manuals
  * @apiParam {String} initial 検索する頭文字 (1文字)
  */
-apiRouter.get('/manuals/search/initials', async (req, res) => {
-    logWithTimestamp('[INFO] Received request to search manuals by initial:', req.query); // 修正済み
-    const initial = req.query.initial as string;
+apiRouter.get('/manuals/search/initials', protect, async (req, res, next) => {
+    try {
+        logWithTimestamp('[INFO] Received request to search manuals by initial:', req.query); // 修正済み
 
-    // initialが存在し、かつ1文字であることを確認
-    if (initial && initial.length === 1) {
-        try {
-            const manuals = await ManualService.searchManualsByInitial(initial);
-            res.status(200).json(manuals);
-        } catch (error) {
-            console.error('Failed to search manuals by initial:', error);
-            res.status(500).json({ message: 'Internal Server Error' });
+        // JWTから言語IDを取得
+        const languageId = req.user?.language; // JWTから言語IDを取得
+        if (!languageId) throw createAppError('Unauthorized', ErrorNames.Auth);
+
+        // クエリからinitialを取得 (stringとして扱う)
+        const initial = req.query.initial as string;
+
+        // initialが存在し、かつ1文字であることを確認
+        if (!initial || initial.length !== 1) {
+            throw createAppError('クエリパラメータ "initial" は必須で、1文字である必要があります。', ErrorNames.BadRequest);
         }
-    } else {
-        // initialがない、または1文字でない場合は400エラー
-        res.status(400).json({ message: 'クエリパラメータ "initial" は必須で、1文字である必要があります。' });
+
+        // マニュアルを頭文字で検索
+        const manuals = await ManualService.searchManualsByInitial(initial, languageId);
+        res.status(200).json(manuals);
+    } catch (error) {
+        console.error('Failed to search manuals by initial:', error);
+        next(error); // エラーを次のミドルウェアに渡す
     }
 });
 
@@ -306,29 +318,25 @@ apiRouter.get('/manuals/search/initials', async (req, res) => {
  * @apiGroup Manuals
  * @apiParam {Number} manualId マニュアルのID
  */
-apiRouter.get('/manuals/:manualId', async (req, res) => {
-    logWithTimestamp('[INFO] Received request to get manual by ID:', req.params.manualId); // 修正済み
-    // パスパラメータからmanualIdを取得し、数値に変換
-    const manualId = parseInt(req.params.manualId, 10);
+apiRouter.get('/manuals/:manualId', protect, async (req, res, next) => {
+    try {
+        logWithTimestamp('[INFO] Received request to get manual by ID:', req.params.manualId); // 修正済み
 
-    // manualIdが有効な数値かチェック
-    if (!isNaN(manualId)) {
-        try {
-            const manual = await ManualService.getManualById(manualId);
-            if (manual) {
-                // マニュアルが見つかった場合
-                res.status(200).json(manual);
-            } else {
-                // サービスがnullを返した場合（＝マニュアルが見つからなかった）
-                res.status(404).json({ message: 'Manual not found.' });
-            }
-        } catch (error) {
-            console.error('Failed to get manual by ID:', error);
-            res.status(500).json({ message: 'Internal Server Error' });
-        }
-    } else {
-        // manualIdが数値でない場合は400エラー
-        res.status(400).json({ message: 'Invalid manual ID format.' });
+        const languageId = req.user?.language; // JWTから言語IDを取得
+        if (!languageId) throw createAppError('Unauthorized', ErrorNames.Auth);
+
+        // パスパラメータからmanualIdを取得し、数値に変換
+        const manualId = parseInt(req.params.manualId, 10);
+        if (isNaN(manualId)) throw createAppError('Invalid manual ID format.', ErrorNames.BadRequest);
+
+        // マニュアルをIDで取得
+        const manual = await ManualService.getManualById(manualId, languageId);
+        if (!manual) throw createAppError('Manual not found.', ErrorNames.NotFound);
+
+        res.status(200).json(manual);
+    } catch (error) {
+        console.error('Failed to get manual by ID:', error);
+        next(error); // エラーを次のミドルウェアに渡す
     }
 });
 
