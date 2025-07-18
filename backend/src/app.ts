@@ -130,6 +130,31 @@ apiRouter.post('/auth/login', async (req, res, next) => {
 });
 
 /**
+ * @api {get} /auth/token アクセストークンを更新
+ * @apiName GetAccessToken
+ * @apiGroup Auth
+ */
+apiRouter.post('/auth/token', protect, async (req, res, next) => {
+    try {
+        logWithTimestamp('[INFO] Received request to get access token:', req.user);
+
+        const userId = req.user?.userId; // protectミドルウェアでユーザー情報が設定されている
+        if (!userId) throw createAppError('Unauthorized', ErrorNames.Auth);
+
+        // ユーザー情報取得
+        const user = await UserService.getUser(userId);
+        if (!user) throw createAppError('User not found.', ErrorNames.NotFound);
+
+        // JWTを生成
+        const accessToken = generateAccessToken(user);
+        res.status(200).json({ accessToken });
+    } catch (error) {
+        console.error('Failed to get access token:', error);
+        next(error); // エラーを次のミドルウェアに渡す
+    }
+})
+
+/**
  * @api {get} /users/me 現在のユーザーのプロフィールを取得
  * @apiName GetMyProfile
  * @apiGroup Users
@@ -151,7 +176,7 @@ apiRouter.get('/users/me', protect, async (req, res, next) => {
         console.error('Failed to get user profile:', error);
         next(error); // エラーを次のミドルウェアに渡す
     }
-});
+})
 
 /**
  * @api {put} /users/me 現在のユーザーのプロフィールを更新
