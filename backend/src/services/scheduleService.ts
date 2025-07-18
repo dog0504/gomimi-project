@@ -5,7 +5,7 @@ import { User } from "../entity/User";
 import { CollectionSchedule } from "../entity/CollectionSchedule";
 import { ErrorNames, createAppError } from '../errorHandling'; // エラー名を定義したファイルをインポート
 
-export const getBinDaysForUser = async (userId: number): Promise<BinDayDto[]> => {
+export const getBinDaysForUser = async (userId: number, langId: number): Promise<BinDayDto[]> => {
     const userRepository = AppDataSource.getRepository(User);
 
     // ユーザー＋リレーション取得（address, language）
@@ -29,9 +29,6 @@ export const getBinDaysForUser = async (userId: number): Promise<BinDayDto[]> =>
         },
         order: { collectionDay: "ASC" },
     });
-
-    // TODO: 言語が日本語(1)と英語(2)以外の場合の処理を追加すること
-    const langId = user.language.id <= 2 ? user.language.id : 2;
 
     // DTOに変換
     const binDays = schedules.map(schedule => {
