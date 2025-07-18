@@ -13,6 +13,7 @@ const JWT_SECRET = 'your-super-secret-key-that-is-at-least-32-characters-long';
 interface JwtPayload {
     userId: number;
     email: string;
+    language: number; // 必要に応じて言語IDを追加
 }
 
 declare global {
