@@ -1,60 +1,53 @@
+import { BinDayDto } from '../dto/BinDayDto';
+import { plainToInstance } from 'class-transformer';
 import { AppDataSource } from "../data-source";
 import { User } from "../entity/User";
 import { CollectionSchedule } from "../entity/CollectionSchedule";
+import { ErrorNames, createAppError } from '../errorHandling'; // エラー名を定義したファイルをインポート
 
-// API仕様書で定義されているBinDayの型
-interface BinDay {
-    id: number;
-    type: string;
-    dayOfWeek: string;
-    time: string | null;
-}
-
-/**
- * ユーザーIDに紐づくゴミ収集日リストを取得する
- * @param userId ユーザーのID
- * @returns BinDayオブジェクトの配列
- */
-export const getBinDaysForUser = async (userId: number): Promise<BinDay[]> => {
+export const getBinDaysForUser = async (userId: number): Promise<BinDayDto[]> => {
     const userRepository = AppDataSource.getRepository(User);
 
-    // 1. ユーザー情報を取得し、関連する住所も読み込む
+    // ユーザー＋リレーション取得（address, language）
     const user = await userRepository.findOne({
         where: { id: userId },
-        relations: {
-            address: true, // Userエンティティのaddressプロパティを読み込む
-        },
+        relations: { address: true, language: true },
     });
 
-    // ユーザーまたは住所が登録されていない場合は空の配列を返す
-    if (!user || !user.address) {
-        return [];
-    }
+    if (!user || !user.address) throw createAppError('User not found or address not set', ErrorNames.NotFound);
 
-    // 2. ユーザーの住所IDに紐づく収集スケジュールを取得する
+    // スケジュール＋ゴミ種別＋翻訳＋言語を取得
     const scheduleRepository = AppDataSource.getRepository(CollectionSchedule);
     const schedules = await scheduleRepository.find({
-        where: {
-            address: {
-                addressId: user.address.addressId,
+        where: { address: { addressId: user.address.addressId } },
+        relations: {
+            garbageType: {
+                translations: {
+                    languageId: true, // ★ 修正点: ネストされたlanguageIdリレーションを読み込む
+                },
             },
         },
-        // ゴミ種別名を取得するために、GarbageTypeエンティティも関連付けて読み込む
-        relations: {
-            garbageType: true,
-        },
-        order: {
-            collectionDay: "ASC", // 曜日順で並び替え
-        },
+        order: { collectionDay: "ASC" },
     });
 
-    // 3. 取得したデータをAPIのレスポンス形式(BinDay)に整形する
-    const binDays: BinDay[] = schedules.map(schedule => ({
-        id: schedule.id,
-        type: schedule.garbageType.type, // 関連付けたGarbageTypeから種別名を取得
-        dayOfWeek: schedule.collectionDay, // 曜日
-        time: schedule.collectionTime || null, // 収集時間（nullの場合もあるため）
-    }));
+    // TODO: 言語が日本語(1)と英語(2)以外の場合の処理を追加すること
+    const langId = user.language.id <= 2 ? user.language.id : 2;
 
-    return binDays;
+    // DTOに変換
+    const binDays = schedules.map(schedule => {
+        // ゴミ種別名をユーザーの言語で取得
+        const translation = schedule.garbageType.translations.find(
+            // ★ 修正点: t.languageIdが存在することを安全にチェックする
+            t => t.languageId && t.languageId.id === langId
+        );
+        return {
+            id: schedule.id,
+            type: translation ? translation.name : '', // 該当言語がなければ空文字
+            dayOfWeek: schedule.collectionDay,
+            time: schedule.collectionTime || null,
+        };
+    });
+
+    // class-transformerでDTO化
+    return plainToInstance(BinDayDto, binDays, { excludeExtraneousValues: true });
 };
