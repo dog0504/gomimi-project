@@ -19,7 +19,7 @@ import * as ScheduleService from './services/scheduleService';
 import { protect } from './middleware/authMiddleware';
 import * as ManualService from './services/manualService';
 import * as HistoryService from './services/historyService';
-// import { findAddressesByPostalCode } from './services/addressService';
+import { findAddressesByPostalCode } from './services/addressService';
 import { getAllLanguages } from './services/languageService';
 import { identifyGarbageFromImage } from './services/garbageService';
 // import { addHistoryForUser } from './services/historyService';
@@ -433,31 +433,32 @@ apiRouter.post('/users/me/histories', protect, async (req, res, next) => {
  * @apiName SearchAddresses
  * @apiGroup Addresses
  * @apiParam {String} postalCode 検索する郵便番号
+ * @apiParam {String} [lang] 言語コード (例: 'ja', 'en')。省略時は 'ja'。
  */
-// apiRouter.get('/addresses/search', async (req, res) => {
-//     logWithTimestamp('[INFO] Received request to search addresses by postal code:', req.query); // 修正済み
-//     const postalCode = req.query.postalCode as string;
+// ★ 修正点: protect を削除し、クエリから言語コード(lang)を取得
+apiRouter.get('/addresses/search', async (req, res, next) => {    
+    try {
+        logWithTimestamp('[INFO] Received request to search addresses by postal code:', req.query);
 
-//     // postalCodeが存在し、空文字列でないことを確認
-//     if (postalCode && postalCode.trim() !== '') {
-//         try {
-//             const addresses = await findAddressesByPostalCode(postalCode.trim());
-//             if (addresses.length > 0) {
-//                 // 住所が見つかった場合
-//                 res.status(200).json(addresses);
-//             } else {
-//                 // API仕様書に従い、見つからなかった場合は404エラー
-//                 res.status(404).json({ message: 'Address not found.' });
-//             }
-//         } catch (error) {
-//             console.error('Failed to search addresses:', error);
-//             res.status(500).json({ message: 'Internal Server Error' });
-//         }
-//     } else {
-//         // postalCodeが提供されていない場合は400エラー
-//         res.status(400).json({ message: 'クエリパラメータ "postalCode" は必須です。' });
-//     }
-// });
+        const postalCode = req.query.postalCode as string;
+        // TODO:将来の拡張性を考慮して、言語コードをクエリから取得するようにする
+        // クエリから言語コードを取得。指定がなければ 'ja' (日本語) をデフォルト値とする
+        // const langCode = (req.query.lang as string) || 'ja';
+        const langCode = 'ja';
+
+        if (!postalCode || postalCode.trim() === '') throw createAppError('クエリパラメータ "postalCode" は必須です。', ErrorNames.BadRequest);
+
+        const addresses = await findAddressesByPostalCode(postalCode.trim(), langCode);
+        // 住所が見つからない場合は404エラー
+        // if (addresses.length === 0) throw createAppError('Address not found.', ErrorNames.NotFound);
+        
+        res.status(200).json(addresses);
+
+    } catch (error) {
+        console.error('Failed to search addresses:', error);
+        next(error);
+    }
+});
 
 /**
  * @api {get} /languages 利用可能な言語のリストを取得
