@@ -87,6 +87,23 @@ paths:
                 $ref: '#/components/schemas/AuthResponse'
         '401':
           description: Unauthorized.
+  /auth/token:
+    post:
+      tags:
+        - Auth
+      summary: トークンを更新
+      description: 有効なJWTトークンを使用して新しいトークンを取得します。
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Token refreshed successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Unauthorized.
 
   /users/me:
     get:
