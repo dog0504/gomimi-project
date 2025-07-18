@@ -32,7 +32,8 @@ export class UserResponseDto {
         }
 
         // 1. ユーザーの言語設定を取得
-        const userLanguageCode = obj.language.code;
+        // const userLanguageCode = obj.language.code;
+        const userLanguageCode = 'ja'; // TODO: 実際のユーザーの言語コードを取得するロジックに置き換える
 
         // 2. 郵便番号に紐づく翻訳リストから、ユーザーの言語に一致するものを探す
         const translation = value.zipCode.translations?.find(
