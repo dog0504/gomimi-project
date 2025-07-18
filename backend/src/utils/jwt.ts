@@ -10,8 +10,14 @@ export function generateAccessToken(user : User): string {
     //     { expiresIn: '10h' }
     // );
 
+    // TODO:他の言語を実装する際はここを変更すること
+    let languageId = 1;
+    if (user.language.id >= 2) {
+        languageId = 2; // 英語以外を実装していないため、英語の2とする
+    }
+
     return jwt.sign(
-        { userId: user.id, email: user.email, language: user.language.id },
+        { userId: user.id, email: user.email, language: languageId },
         JWT_SECRET,
         { 
             expiresIn: '10h'
