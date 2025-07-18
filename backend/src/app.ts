@@ -376,12 +376,16 @@ apiRouter.get('/manuals/:manualId', protect, async (req, res, next) => {
 apiRouter.get('/users/me/histories', protect, async (req, res, next) => {
     try {
         logWithTimestamp('[INFO] Received request to get user histories:', req.user);
+
         const userId = req.user?.userId;
-        if (!userId) throw createAppError('Unauthorized', ErrorNames.Auth);
+        const languageId = req.user?.language; // JWTから言語IDを取得
+        if (!userId || !languageId) throw createAppError('Unauthorized', ErrorNames.Auth);
+
         // クエリからlimitとoffsetを取得し、数値に変換。未指定の場合はデフォルト値を使用。
         const limit = parseInt(req.query.limit as string, 10) || 20;
         const offset = parseInt(req.query.offset as string, 10) || 0;
-        const histories = await HistoryService.getHistoriesForUser(userId, limit, offset);
+
+        const histories = await HistoryService.getHistoriesForUser(userId, languageId, limit, offset);
         res.status(200).json(histories);
     } catch (error) {
         console.error('Failed to get user histories:', error);
