@@ -244,13 +244,16 @@ apiRouter.delete('/users/me', protect, async (req, res, next) => {
 apiRouter.get('/users/me/bin-days', protect, async (req, res, next) => {
     try {
         logWithTimestamp('[INFO] Received request to get user bin days:', req.user); // 修正済み
-        const userId = req.user?.userId;
 
+        const userId = req.user?.userId;
         // ユーザーIDが存在しない場合はエラー
         if (!userId) throw createAppError('Unauthorized', ErrorNames.Auth);
 
+        const languageId = req.user?.language; // JWTから言語IDを取得
+        if (!languageId) throw createAppError('Language ID not found in token.', ErrorNames.Auth);
+
         // ユーザーのゴミ収集日を取得
-        const binDays = await ScheduleService.getBinDaysForUser(userId);
+        const binDays = await ScheduleService.getBinDaysForUser(userId, languageId); // デフォルト言語IDを1に設定
         res.status(200).json(binDays);
     } catch (error) {
         console.error('Failed to get bin days:', error);
