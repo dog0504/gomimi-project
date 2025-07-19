@@ -21,9 +21,7 @@ import * as ManualService from './services/manualService';
 import * as HistoryService from './services/historyService';
 import { findAddressesByPostalCode } from './services/addressService';
 import { getAllLanguages } from './services/languageService';
-import { identifyGarbageFromImage } from './services/garbageService';
-// import { addHistoryForUser } from './services/historyService';
-import { importEnglishTranslations } from './import-english-translations';
+import { identifyGarbageFromImage, IdentificationResult } from './services/garbageService';
 
 import { handleError, ErrorNames, createAppError } from './errorHandling'; // エラーハンドリングの関数をインポート
 import { generateAccessToken } from './utils/jwt';
@@ -485,49 +483,56 @@ apiRouter.get('/languages', async (req, res) => {
  * @apiName IdentifyGarbage
  * @apiGroup Garbage
  * @apiHeader {String} Authorization Bearerトークン
+ * @apiBody {File} image 識別したい画像ファイル
  */
-// apiRouter.post('/garbage/identify', protect, upload.single('image'), async (req, res) => {
-//     const userId = req.user?.userId;
+apiRouter.post('/garbage/identify', protect, upload.single('image'), async (req, res, next) => {
+    try {
+        const userId = req.user?.userId;
+        const languageId = req.user?.language; // JWTから言語IDを取得
 
-//     if (userId) {
-//         if (req.file) {
-//         try {
-//             // 1. 外部APIを呼び出してゴミの識別候補リストを取得
-//             const identificationResults = await identifyGarbageFromImage(req.file.buffer);
+        if (!userId || !languageId) throw createAppError('Unauthorized', ErrorNames.Auth)
+        if (!req.file) throw createAppError('No image provided.', ErrorNames.BadRequest);
 
-//             if (identificationResults && identificationResults.results.length > 0) {
+        // 1. 外部のAI APIを呼び出して、ゴミの識別候補リストを取得
+        const aiResponse = await identifyGarbageFromImage(req.file.buffer);
+
+        if (!aiResponse && aiResponse!.results.length === 0) throw createAppError('Could not identify the garbage from the image.', ErrorNames.NotFound);
+
+        // 2. AIの識別結果をループして、それぞれ履歴に保存
+        let Results: IdentificationResult[] = []; // AIの識別結果を保持する変数として初期化
+        // (複数の処理を並行して実行)
+        const historyPromises = aiResponse!.results.map(async (result) => {
+            // 3. 識別された名前(result.name)で、DB内のマニュアルを検索
+            const manual = await ManualService.findManualByName(result.name, languageId);
             
-//             // 2. 識別結果リストの各項目について、履歴保存処理を行う
-//             for (const result of identificationResults.results) {
-//                 // 3. 識別名でマニュアルを検索
-//                 const manual = await ManualService.findManualByName(result.name);
-                
-//                 // 4. マニュアルが見つかればそのtypeを、なければnullを履歴のtypeとする
-//                 // const typeForHistory = manual ? manual.type : null;
-//                 const typeForHistory = null;
-                
-//                 // 5. 履歴を保存
-//                 await addHistoryForUser(userId, { name: result.name, type: typeForHistory });
-//             }
-//             // --- ★ここまで ---
+            // 4. マニュアルが見つかった場合のみ、履歴を追加
+            if (manual) {
+                await HistoryService.addHistoryForUser(userId, manual.id, languageId);
+                // 履歴保存の結果をResultsに追加
+                Results.push({
+                    rank: result.rank,
+                    name: manual.name,
+                });
+            } else {
+                // マニュアルが見つからない場合は、ログに残すなどしてスキップ
+                logWithTimestamp(`[WARN] Manual not found for AI result: "${result.name}". History not saved.`);
+            }
+        });
+        
+        // すべての履歴保存処理が終わるのを待つ
+        await Promise.all(historyPromises);
 
-//             // 6. API仕様書通り、識別結果のリストをクライアントにレスポンスとして返す
-//             res.status(200).json(identificationResults);
-
-//             } else {
-//             res.status(404).json({ message: 'Could not identify the garbage from the image.' });
-//             }
-//         } catch (error) {
-//             console.error('Failed during garbage identification process:', error);
-//             res.status(503).json({ message: (error as Error).message });
-//         }
-//         } else {
-//         res.status(400).json({ message: 'No image provided.' });
-//         }
-//     } else {
-//         res.status(401).json({ message: 'Unauthorized.' });
-//     }
-// });
+        // 5. API仕様書通りのレスポンスをクライアントに返す
+        const clientResponse = {
+            query: aiResponse!.query_text, // "query_text" を "query" にマッピング
+            results: Results,
+        };
+        res.status(200).json(clientResponse);
+    } catch (error) {
+        console.error('Failed during garbage identification process:', error);
+        next(error); // エラーハンドラに処理を移す
+    }
+});
 
 /**
  * @api {post} /garbage/identify/test 画像からゴミを識別 (テスト用)
@@ -588,35 +593,34 @@ apiRouter.post('/garbage/identify/test', protect, upload.single('image'), async 
  * @apiGroup Manuals
  * @apiParam {String} name 完全一致で検索する名前
  */
-apiRouter.get('/manuals/search/exact', async (req, res) => {
-    const name = req.query.name as string;
+apiRouter.get('/manuals/search/exact', protect, async (req, res, next) => {
+    try {
+        const name = req.query.name as string;
+        if (!name || name.trim() === '') throw createAppError('クエリパラメータ "name" は必須です。', ErrorNames.BadRequest);
+        logWithTimestamp('[INFO] Received request to search manual by exact name:', name);
 
-    // nameクエリパラメータが存在し、空でないことを確認
-    if (name && name.trim() !== '') {
-        try {
-        // サービスを呼び出してマニュアルを検索
-        const manual = await ManualService.findManualByName(name.trim());
+        const languageId = req.user?.language; // JWTから言語IDを取得
+        if (!languageId) throw createAppError('Unauthorized', ErrorNames.Auth);
+
+        // マニュアルを完全一致で検索
+        const manual = await ManualService.findManualByName(name.trim(), languageId);
 
         if (manual) {
             // マニュアルが見つかった場合、API仕様の形式にマッピングして返す
             const responseBody = {
                 id: manual.id,
-                // name: manual.garbage,
-                // category: manual.type,
-                // remarks: manual.contents
+                name: manual.name,
+                category: manual.category,
+                remarks: manual.remarks,
             };
             res.status(200).json(responseBody);
         } else {
-            // マニュアルが見つからなかった場合は404エラー
-            res.status(404).json({ message: 'Manual not found.' });
+            // マニュアルが見つからなかった場合
+            res.status(200).json([]);
         }
-        } catch (error) {
-            console.error('Failed to search manual by exact name:', error);
-            res.status(500).json({ message: 'Internal Server Error' });
-        }
-    } else {
-        // nameクエリパラメータがない場合は400エラー
-        res.status(400).json({ message: 'クエリパラメータ "name" は必須です。' });
+    } catch (error) {
+        console.error('Failed to search manual by exact name:', error);
+        next(error); // エラーを次のミドルウェアに渡す
     }
 });
 
