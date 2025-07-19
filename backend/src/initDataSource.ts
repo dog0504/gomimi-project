@@ -5,7 +5,7 @@ import { AppDataSource } from './data-source';
 import { Address } from './entity/Address';
 import { GarbageType } from './entity/GarbageType';
 import { CollectionSchedule } from './entity/CollectionSchedule';
-import { Manuals } from './entity/Manual';
+import { Manual } from './entity/Manual';
 import { Language, LANGUAGE_SEED_DATA } from './entity/Language'; // Languageとシードデータをインポート
 import { DataSource } from 'typeorm';
 
@@ -40,10 +40,10 @@ async function seedAddresses(): Promise<void> {
           }
           const address = new Address();
           address.addressId = addressId;
-          address.zip = data.zip;
-          address.city = data.city;
-          address.ward = data.ward;
-          address.town = data.town;
+          // address.zip = data.zip;
+          // address.city = data.city;
+          // address.ward = data.ward;
+          // address.town = data.town;
           address.chom = data.chome || null;
           address.street = data.street || null;
           address.inf = data.inf || null;
@@ -69,52 +69,52 @@ async function seedAddresses(): Promise<void> {
 /**
  * 'GarbageType' テーブルにCSVデータを挿入する
  */
-async function seedGarbageTypes(): Promise<void> {
-  const garbageTypeRepository = AppDataSource.getRepository(GarbageType);
-  const count = await garbageTypeRepository.count();
-  if (count > 0) {
-    console.log('GarbageType テーブルには既にデータが存在するため、スキップします。');
-    return;
-  }
+// async function seedGarbageTypes(): Promise<void> {
+//   const garbageTypeRepository = AppDataSource.getRepository(GarbageType);
+//   const count = await garbageTypeRepository.count();
+//   if (count > 0) {
+//     console.log('GarbageType テーブルには既にデータが存在するため、スキップします。');
+//     return;
+//   }
 
-  console.log('GarbageType テーブルにデータを挿入します...');
-  const csvFilePath = path.join(CSV_DIR, 'garbage_types.csv');
+//   console.log('GarbageType テーブルにデータを挿入します...');
+//   const csvFilePath = path.join(CSV_DIR, 'garbage_types.csv');
 
-  const failedEntries: any[] = [];
-  return new Promise((resolve, reject) => {
-    let success = 0;
-    let fail = 0;
-    fs.createReadStream(csvFilePath)
-      .pipe(csv({ headers: ['garbage_type_name','garbage_type_id'] }))
-      .on('data', async (data) => {
-        try {
-          const garbageTypeId = parseInt(data.garbage_type_id, 10);
-          if (isNaN(garbageTypeId)) {
-            console.warn(`Invalid garbage_type_id: ${data.garbage_type_id}, skipping entry.`);
-            return;
-          }
+//   const failedEntries: any[] = [];
+//   return new Promise((resolve, reject) => {
+//     let success = 0;
+//     let fail = 0;
+//     fs.createReadStream(csvFilePath)
+//       .pipe(csv({ headers: ['garbage_type_name','garbage_type_id'] }))
+//       .on('data', async (data) => {
+//         try {
+//           const garbageTypeId = parseInt(data.garbage_type_id, 10);
+//           if (isNaN(garbageTypeId)) {
+//             console.warn(`Invalid garbage_type_id: ${data.garbage_type_id}, skipping entry.`);
+//             return;
+//           }
 
-          const garbageType = new GarbageType();
-          garbageType.id = garbageTypeId;
-          garbageType.type = data.garbage_type_name;
-          await garbageTypeRepository.save(garbageType);
-          success++;
-        } catch (error) {
-          console.error(`Error inserting garbage type: ${String(error)}`);
-          fail++;
-          failedEntries.push(data);
-        }
-      })
-      .on('end', () => {
-        console.log(`GarbageType: 成功 ${success}件, 失敗 ${fail}件`);
-        if (failedEntries.length > 0) {
-          console.log('失敗したデータ:', failedEntries);
-        }
-        resolve(undefined);
-      })
-      .on('error', reject);
-  });
-}
+//           const garbageType = new GarbageType();
+//           garbageType.id = garbageTypeId;
+//           garbageType.type = data.garbage_type_name;
+//           await garbageTypeRepository.save(garbageType);
+//           success++;
+//         } catch (error) {
+//           console.error(`Error inserting garbage type: ${String(error)}`);
+//           fail++;
+//           failedEntries.push(data);
+//         }
+//       })
+//       .on('end', () => {
+//         console.log(`GarbageType: 成功 ${success}件, 失敗 ${fail}件`);
+//         if (failedEntries.length > 0) {
+//           console.log('失敗したデータ:', failedEntries);
+//         }
+//         resolve(undefined);
+//       })
+//       .on('error', reject);
+//   });
+// }
 
 /**
  * 'CollectionSchedule' テーブルにCSVデータを挿入する
@@ -180,7 +180,7 @@ async function seedCollectionSchedules(): Promise<void> {
  * 'Manuals' テーブルにCSVデータを挿入する
  */
 async function seedManuals(): Promise<void> {
-  const manualRepository = AppDataSource.getRepository(Manuals);
+  const manualRepository = AppDataSource.getRepository(Manual);
   const count = await manualRepository.count();
   if (count > 0) {
     console.log('Manuals テーブルには既にデータが存在するため、スキップします。');
@@ -198,11 +198,11 @@ async function seedManuals(): Promise<void> {
       .pipe(csv({ headers: ['word', 'garbage', 'g_type', 'contents'] }))
       .on('data', async (data) => {
         try {
-          const manual = new Manuals();
-          manual.garbage = data.garbage;
-          manual.type = data.g_type;
-          manual.contents = data.contents || null;
-          manual.word = data.word;
+          const manual = new Manual();
+          // manual.garbage = data.garbage;
+          // manual.type = data.g_type;
+          // manual.contents = data.contents || null;
+          // manual.word = data.word;
           await manualRepository.save(manual);
           success++;
         } catch (error) {
