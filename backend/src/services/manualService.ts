@@ -152,15 +152,42 @@ export const getManualById = async (manualId: number, languageId: number): Promi
 };
 
 /**
- * ゴミの名前でマニュアルを一件検索する (完全一致)
- * @param name 検索するゴミの名前
- * @returns Manualsエンティティ、または見つからない場合はnull
+ * ゴミの日本語名でマニュアルを検索し、指定された言語で詳細を返す
+ * @param name 検索するゴミの日本語名 (AIの識別結果など)
+ * @param languageId 返却する情報の言語ID
+ * @returns ManualDetailオブジェクト、または見つからない場合はnull
  */
-export const findManualByName = async (name: string): Promise<Manual | null> => {
+export const findManualByName = async (name: string, languageId: number): Promise<ManualDetail | null> => {
     const manualRepository = AppDataSource.getRepository(Manual);
     
-    // 'garbage' カラムで完全一致検索
-    const manual = await manualRepository.findOneBy({ garbageJa: name });
+    // 1. AI検索用の日本語名(garbageJa)でManualエンティティを検索する
+    //    リレーションで全ての翻訳も一緒に取得しておく
+    const manual = await manualRepository.findOne({
+        where: { garbageJa: name },
+        relations: {
+            translations: {
+                language: true, // 翻訳に紐づく言語情報も取得
+            },
+        },
+    });
     
-    return manual;
+    // 2. マニュアルが見つかった場合
+    if (manual) {
+        // 3. ユーザーの言語に合った翻訳を探す
+        const translation = manual.translations.find(
+            t => t.language.id === languageId
+        );
+
+        // 4. レスポンス形式にマッピングして返す
+        //    翻訳が見つかればその情報を、なければ日本語名を基準にする
+        return {
+            id: manual.id,
+            name: translation ? translation.garbage : manual.garbageJa,
+            category: translation ? translation.type : "", // カテゴリも翻訳から (フォールバックは空文字など)
+            remarks: translation ? translation.contents : null, // 注意文も翻訳から
+        };
+    }
+    
+    // 5. マニュアルが見つからなかった場合はnullを返す
+    return null;
 };
