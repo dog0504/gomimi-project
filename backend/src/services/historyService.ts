@@ -51,7 +51,7 @@ export const getHistoriesForUser = async (userId: number, langId: number, limit:
         );
 
         return {
-            id: history.id,
+            id: history.manual.id, // マニュアルのIDを使用
             name: translation ? translation.garbage : history.manual.garbageJa, // 該当言語の翻訳がなければマニュアル名を使用
             category: translation ? translation.type : null, // 該当言語の翻訳がなければnull
             createdAt: history.Date.toISOString(), // DateオブジェクトをISO 8601形式の文字列に変換
@@ -111,7 +111,7 @@ export const addHistoryForUser = async (userId: number, manualId: number, langua
     );
 
     return {
-        id: fullNewHistory.id,
+        id: fullNewHistory.manual.id,
         name: translation ? translation.garbage : fullNewHistory.manual.garbageJa, // 該当言語の翻訳がなければマニュアル名を使用
         category: translation ? translation.type : null,
         createdAt: fullNewHistory.Date.toISOString(),
