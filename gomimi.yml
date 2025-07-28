@@ -769,6 +769,9 @@ components:
         name:
           type: string
           example: "コップ（ガラス製）"
+        manualId:
+          type: integer
+          example: 102
 
 
   securitySchemes:
