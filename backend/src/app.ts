@@ -512,6 +512,7 @@ apiRouter.post('/garbage/identify', protect, upload.single('image'), async (req,
                 Results.push({
                     rank: result.rank,
                     name: manual.name,
+                    manualId: manual.id, // マニュアルのIDも追加
                 });
             } else {
                 // マニュアルが見つからない場合は、ログに残すなどしてスキップ

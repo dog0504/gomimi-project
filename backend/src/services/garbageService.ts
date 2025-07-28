@@ -21,6 +21,7 @@ export interface FullIdentificationResponse {
 export interface IdentificationResult {
     rank: number;
     name: string;
+    manualId?: number; // マニュアルのIDをオプションとして追加
 }
 
 // Python APIのURL。将来的には設定ファイルなどに外出しするのが望ましいです。
